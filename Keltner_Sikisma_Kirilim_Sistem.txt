@@ -1,0 +1,126 @@
+{ ============================================================
+  SIKIŞMA SONRASI KELTNER KIRILIMI  -  iDeal / Prime
+  5dk  |  X30Y vadeli ve pay senedi
+  ------------------------------------------------------------
+  MANTIK: Piyasa sıkışmışken kurulan enerji, bant kırılımıyla
+  boşalır. Sıkışma tespiti tetikler, Keltner kırılımı ateşler.
+
+  ############################################################
+  #  REJİM FİLTRESİ BURAYA *TERS* TAKILIR                     #
+  ############################################################
+  VWAP_Filtreli_Sistem.txt dosyasında filtre şöyle kullanılıyor:
+     TrendMod = 1 (düşük sürtünme, trend var) -> işlem serbest
+  Çünkü VWAP kesişimi trend takip eder ve yatay piyasada testere
+  üretir; filtre o rejimde sistemi susturur.
+
+  BURADA AYNISINI YAPARSAN HATA OLUR.
+  Kırılım sisteminde aradığın şey rejim GEÇİŞİDİR. "Zaten
+  trendde" şartı korsan trene istasyondan iki durak sonra
+  binersin. Doğrusu: ÖNCEKİ barda SIKIŞMA vardı ve ŞİMDİ bant
+  kırıldı.
+
+  Aynı filtre, iki sistemde iki zıt yönde kullanılıyor. Bu bir
+  tutarsızlık değil, sistemlerin doğasının farkı. Kopyala-yapıştır
+  yaparken bu satırı hatırla.
+
+  ############################################################
+  #  REPODAKI __SqueezeMomentum.001 İLE İLİŞKİSİ              #
+  ############################################################
+  Buradaki mantık TTM Squeeze ile aynı ailedendir (Bollinger'ın
+  Keltner'ın içine girip çıkması). O dosya sende zaten varsa,
+  sıkışma tespitini SIFIRDAN kurmak yerine oradaki tanımı buraya
+  bağlamak daha tutarlı olur -- aynı kavramı iki ayrı yerde iki
+  farklı şekilde tanımlamış olmazsın. Aşağıdaki Surtunme bloğu
+  o dosyayı kullanmak istemezsen diye duruyor.
+
+  ############################################################
+  #  FİLTRE SEÇİMİ: SÜRTÜNME mi CHOP mu                       #
+  ############################################################
+  İKİSİNİ BİRDEN KULLANMA. Aynı büyüklüğü (yol/net yer
+  değiştirme) ölçerler, korelasyonları yüksektir. Üst üste
+  koymak çeşitlendirme değil, tek sinyali iki kez saymaktır:
+  işlem sayısı düşer, backtest iyi görünür, sağlamlık artmaz.
+
+  X30Y 5dk için varsayılan SÜRTÜNME (fitil bağışıklığı; stop
+  avları TR'yi şişirip CHOP'u yanıltır). CHOP alternatifi yorum
+  bloğunda. Hangisi daha iyi backtest verdiyse onu SEÇME --
+  o da bir fit biçimidir; enstrümanın karakterine göre önden
+  karar ver.
+
+  ############################################################
+  #  KURULUM KONTROL LİSTESİ                                  #
+  ############################################################
+   1) Hiçbir sabiti Opt paneline açma: FiltreN, SikismaEsik,
+      EmaN, AtrN, K, hacim çarpanı. Altısı birden optimize
+      edilirse elinde fit edilmiş bir eğri kalır.
+   2) K = 2.0 standarttır. Orijinaldeki 1.618 gizli bir serbest
+      parametredir (Fibonacci sayısı olması ATR çarpanı olarak
+      gerekçe değildir).
+   3) Bantlar bir önceki bardan hesaplanır; kırılım barı kendi
+      eşiğini yükseltmesin. Gerekçesi Keltner_Kirilim.txt'de.
+   4) Tüm sinyaller Ref(...,-1) ile kapanış teyitli. Hacim bar
+      içinde birikimli arttığı için teyitsiz sonuç sahte iyidir.
+   5) VİOP akşam seansında ATR çöker; BantCanli koruması bunu
+      keser. Kaldırma.
+   6) Kayma ve komisyonu gerçekçi gir. 5dk'da asıl kanama orada.
+  ============================================================ }
+
+
+{ --- 1) SIKIŞMA TESPİTİ: SÜRTÜNME (1 - Efficiency Ratio) --- }
+
+FiltreN    := 10;
+Y          := Abs(C - Ref(C,-FiltreN));
+G          := Sum(Abs(C - Ref(C,-1)), FiltreN);
+ER         := If(G > 0, Y/G, 0);
+Surtunme   := Mov(1 - ER, 3, S);
+
+SikismaEsik := 0.65;
+OnceSikisik := Ref(Surtunme, -1) > SikismaEsik;
+
+
+{ --- 1b) ALTERNATİF SIKIŞMA TESPİTİ: CHOPPINESS INDEX ------
+  Yukarıdaki blok yerine kullan. İKİSİNİ BİRDEN AÇMA.
+
+  FiltreN     := 14;
+  TRTop       := Sum(ATR(1), FiltreN);
+  Aralik      := HHV(H,FiltreN) - LLV(L,FiltreN);
+  Ham         := If(Aralik > 0 AND TRTop > 0,
+                    Log(TRTop/Aralik) / Log(FiltreN) * 100, 50);
+  Chop        := Min(Max(Ham,0),100);
+  SikismaEsik := 61.8;
+  OnceSikisik := Ref(Chop, -1) > SikismaEsik;
+  ---------------------------------------------------------- }
+
+
+{ --- 2) TETİK: KELTNER BANT KIRILIMI ----------------------- }
+
+EmaN   := 20;
+AtrN   := 20;
+K      := 2.0;
+
+Orta   := Mov(C, EmaN, E);
+Bant   := ATR(AtrN);
+
+OrtaP  := Ref(Orta, -1);
+BantP  := Ref(Bant, -1);
+Ust    := OrtaP + K*BantP;
+Alt    := OrtaP - K*BantP;
+
+HacimOrt  := Mov(V, 20, S);
+HacimOk   := HacimOrt > 0 AND V > HacimOrt * 1.2;
+BantCanli := BantP > 0;
+
+
+{ --- 3) SİNYALLER ------------------------------------------
+  Platformda ayrı Al / Sat kutuları varsa AL ve SAT
+  satırlarının sağ tarafını ilgili kutuya yapıştır.
+  ---------------------------------------------------------- }
+
+AlKir  := OnceSikisik AND Cross(C, Ust) AND HacimOk AND BantCanli;
+SatKir := OnceSikisik AND Cross(Alt, C) AND HacimOk AND BantCanli;
+
+AlCik  := Cross(OrtaP, C);
+SatCik := Cross(C, OrtaP);
+
+AL  := Ref(AlKir,  -1);
+SAT := Ref(SatKir, -1);

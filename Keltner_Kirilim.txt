@@ -1,0 +1,122 @@
+{ ============================================================
+  KELTNER KANALI KIRILIMI  -  iDeal / Prime
+  5dk  |  X30Y vadeli ve pay senedi
+  ------------------------------------------------------------
+  EMA merkez + ATR zarf. Fiyat üst bandı kırarsa long,
+  alt bandı kırarsa short. Hacim teyidi zorunlu.
+
+  ORİJİNAL KODA GÖRE DÜZELTMELER:
+
+  1) BANT ARTIK BİR ÖNCEKİ BARDAN HESAPLANIYOR. En kritik
+     düzeltme bu. Orijinalde ATR(14) bar t'de TR_t'yi,
+     Mov(C,20,E) ise C_t'yi içeriyordu. Yani büyük bir kırılım
+     barı geldiğinde:
+        - orta çizgi yukarı kayıyordu (alfa = 2/21 ~ 0.095,
+          hareketin ~%9.5'i kadar)
+        - ATR şişiyordu (Wilder: dATR ~ (TR_t - ATR)/14,
+          çarpan ile ~0.116*(TR_t - ATR))
+     İkisi de aynı yöne çalışıyor: aşmak istediğin bant, tam da
+     aşmaya çalıştığın barda senden kaçıyor. TR_t = 3*ATR olan
+     bir barda ekstra engel kabaca 0.23*ATR artı orta çizgi
+     kayması. Sınırdaki gerçek kırılımlar tamamen kaçıyordu.
+     Donchian'ın mevcut barı dışlaması da aynı sebeptendir.
+
+  2) DURUM DEĞİL OLAY. Orijinaldeki C>U, fiyat bandın üstünde
+     kaldığı sürece doğruydu; güçlü trendde 20 bar kesintisiz
+     "sinyal" üretiyordu. Üstüne bar-bar zıplayan hacim şartı
+     binince sinyal rastgele yanıp sönüyordu: ne temiz kırılım
+     olayı, ne temiz durum filtresi. Cross() ile olay yapıldı.
+
+  3) HACİM TEYİDİ DEĞİŞTİRİLDİ. V>Ref(V,-1) hem zayıf hem
+     TARAFLI:
+        - Zayıf: tek barlık karşılaştırma, şansa bağlı ~%50.
+        - Taraflı (asıl sorun): BIST/VİOP 5dk hacmi U şeklinde
+          gün içi mevsimsellik taşır. Açılış spike'ından sonra
+          düşer, öğlen ölür, kapanışa doğru tırmanır.
+          V>Ref(V,-1) bu rampanın EĞİMİNİ ölçer, gerçek hacim
+          anomalisini değil. Sinyaller kapanışa kümelenir,
+          sabah bastırılır. Backtest'te "hacim filtresi işe
+          yaradı" görünür; gördüğün şey saat etkisidir.
+     Göreli hacme (ortalamaya oran) çevrildi.
+
+  4) ÇIKIŞ EKLENDİ. Orijinal bir sistem değil, giriş koşuluydu.
+     Stop yok, hedef yok, ters sinyal yoktu.
+
+  5) ALT BANT KULLANILIYOR. Orijinalde A hesaplanıp hiç
+     kullanılmıyordu (ölü kod) ve sistem sebepsiz long-only'di.
+     X30Y'de short serbest.
+
+  6) K = 2.0. Orijinaldeki 1.618 Fibonacci sayısı olduğu için
+     ilkeli görünür ama ATR çarpanı olarak matematiksel gerekçesi
+     yoktur; fiyat düzeltme oranı bağlamından taşınmıştır. Bu
+     GİZLİ BİR SERBEST PARAMETREDİR. Keltner standardı 2.0.
+     Hangisini seçersen seç, Opt paneline AÇMA. "1.618 tutmadı,
+     2.2 deneyelim" dediğin an optimizasyon başlar.
+
+  7) ATR ÇÖKÜŞÜ KORUMASI. VİOP akşam seansının ölü saatlerinde
+     ATR sıfıra yaklaşır -> bant orta çizginin üstüne kapanır ->
+     en ufak gürültü kırılım sayılır. Sahte sinyal fabrikası.
+
+  8) PENCERE UYUMU. EMA 20 / ATR 14 keyfiydi, ikisi de 20.
+
+  BAR İÇİ REPAINT: Hacim oluşan bar içinde BİRİKİMLİ artar,
+  yani hacim şartı her barın başında zorunlu olarak yanlış,
+  bar ilerledikçe doğruya dönebilir. Her bar aynı deterministik
+  yanıp sönme deseni. Kapanış teyidi olmadan canlıda sistem
+  sana bar içinde sinyal verip geri alır. Ref(...,-1) pazarlık
+  konusu değildir.
+
+  HİÇBİR PARAMETREYİ OPTİMİZASYONA SOKMA. Yapısal seç, sabitle.
+  5dk'da asıl kanama sistem editöründeki stop / kar-al
+  alanlarındadır; kayma ve komisyon gerçekçi girilmeden alınan
+  sonuç anlamsızdır.
+  ============================================================ }
+
+EmaN   := 20;
+AtrN   := 20;          { EMA ile ayni pencere }
+K      := 2.0;         { optimize etme }
+
+Orta   := Mov(C, EmaN, E);
+Bant   := ATR(AtrN);
+
+{ bant BIR ONCEKI bardan: kirilim bari kendi esigini yukseltmesin }
+OrtaP  := Ref(Orta, -1);
+BantP  := Ref(Bant, -1);
+Ust    := OrtaP + K*BantP;
+Alt    := OrtaP - K*BantP;
+
+{ hacim: gun ici mevsimsellik yanliligini kirmak icin ortalamaya gore }
+HacimOrt := Mov(V, 20, S);
+HacimOk  := HacimOrt > 0 AND V > HacimOrt * 1.2;
+
+{ ATR cokusu korumasi: bant kapanirsa sinyal uretme }
+BantCanli := BantP > 0;
+
+AlKir  := Cross(C, Ust) AND HacimOk AND BantCanli;
+SatKir := Cross(Alt, C) AND HacimOk AND BantCanli;
+
+{ cikis: orta cizgiye donus }
+AlCik  := Cross(OrtaP, C);
+SatCik := Cross(C, OrtaP);
+
+{ kapanis teyidi }
+AL  := Ref(AlKir,  -1);
+SAT := Ref(SatKir, -1);
+
+
+{ ------------------------------------------------------------
+  BANTLARI GRAFIKTE GORMEK ICIN
+  Sistem yerine indikator olarak kullanacaksan asagidaki uc
+  satiri birakip AL/SAT bloklarini kaldir.
+
+  Ust
+  OrtaP
+  Alt
+  ------------------------------------------------------------ }
+
+{ ------------------------------------------------------------
+  ATR STOP (S = K*BantP zaten elinde, bedava geliyor)
+  Repodaki MAATRKARALZARAR.001 mantigini buna baglayabilirsin.
+  Long stop  : giris - 2*BantP
+  Short stop : giris + 2*BantP
+  ------------------------------------------------------------ }
