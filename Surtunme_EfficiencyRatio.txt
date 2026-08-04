@@ -1,0 +1,73 @@
+{ ============================================================
+  SÜRTÜNME (1 - Kaufman Efficiency Ratio)  -  iDeal / Prime
+  ------------------------------------------------------------
+  Net yer değiştirmenin kat edilen toplam yola oranı.
+     YÜKSEK (>0.65) = sürtünme yüksek, yatay / verimsiz
+     DÜŞÜK  (<0.35) = sürtünme düşük, temiz trend
+
+  YÖNSÜZDÜR. Sadece FİLTREDİR, giriş üretmez.
+
+  NOT: Bu, repodaki __KaufmanEfficitionRatio.001 ile aynı
+  büyüklüğün ölçeği çevrilmiş halidir (1-ER). Ters çevirmenin
+  tek faydası CHOP ile yön uyumudur (ikisinde de yüksek =
+  sıkışma). Bedeli: KAMA düzleştirme katsayısı olarak
+  kullanılamaz, KAMA ER'yi HAM haliyle ister.
+
+  ORİJİNAL KODUN DOĞRU YANLARI (değiştirilmedi):
+   - Pencere hizalaması doğru. Abs(C-Ref(C,-10)) net yer
+     değiştirmeyi C[t-10] -> C[t] üzerinden alır; Sum(...,10)
+     ise (t-10 -> t-9) ile (t-1 -> t) arasındaki tam 10 adımı
+     toplar. Aynı aralık, off-by-one YOK. ER kodlarında en sık
+     yapılan hata budur, bu kodda yapılmamış.
+   - Sınırlar matematiksel garanti: |Sum(d)| <= Sum(|d|)
+     olduğundan ER daima [0,1], Surtunme daima [0,1].
+     CHOP'un aksine kırpma gerekmez.
+   - Ölçekten bağımsız: fiyat seviyesi, volatilite ve enstrüman
+     fark etmez, aynı eşikler her yerde geçerlidir.
+
+  DÜZELTMELER:
+   1) G=0 koruması. On barın kapanışı aynıysa payda sıfır,
+      üstelik Y de sıfır -> 0/0. VİOP akşam seansında,
+      tavan/taban kilitli payda, düşük hacimli enstrümanda olur.
+      G=0 -> ER=0 -> Surtunme=1 (azami sürtünme). Ölü piyasa
+      kesinlikle trend değildir, doğru davranış budur.
+   2) Yumuşatma eklendi. N=10, 5dk'da 50 dakika; ER'nin bar-bar
+      oynaklığı bu pencerede yüksek, eşik etrafında çırpınır.
+
+  ÇÖZÜLMEYEN, BİLİNÇLİ KABUL EDİLEN KISITLAR:
+   - H/L tamamen görmezden gelinir. 50 puan süpürüp başladığı
+     yerde kapanan bar bu göstergeye göre SIFIR harekettir.
+     Bu aynı zamanda avantajdır: X30Y 5dk'da stop avı fitilleri
+     TR'yi şişirip CHOP'u yanıltır, bu gösterge o fitili görmez.
+   - Seans/gap kirliliği: C-Ref(C,-1) gecelik gap'i normal
+     hareket sanır, çarpıklık pencere boyunca (10 bar ~ 50 dk)
+     sürer. Seans başında göstergeye güvenme.
+   - Bar içi repaint: oluşan barın kapanışı hem Y'yi hem G'nin
+     en yeni terimini değiştirir, ağırlık 1/10. Sistemde
+     MUTLAKA Ref(...,-1) ile kapanış teyidi al.
+
+  N'İ OPTİMİZASYONA SOKMA. Yapısal seç ve sabitle.
+  ============================================================ }
+
+N        := 10;                              { yapısal seç, optimize etme }
+
+Y        := Abs(C - Ref(C,-N));              { net yer degistirme }
+G        := Sum(Abs(C - Ref(C,-1)), N);      { kat edilen toplam yol }
+
+ER       := If(G > 0, Y/G, 0);
+Surtunme := Mov(1 - ER, 3, S);
+
+Surtunme
+
+
+{ ------------------------------------------------------------
+  HİSTEREZİSLİ REJİM BAYRAĞI (sistemde kullanmak için)
+  ------------------------------------------------------------
+     TrendMod = 1 -> trend rejimi, işlem serbest
+     TrendMod = 0 -> sıkışma rejimi, sistem sussun
+
+  UstEsik  := 0.65;
+  AltEsik  := 0.35;
+  Tetik    := If(Surtunme < AltEsik, 1, If(Surtunme > UstEsik, -1, 0));
+  TrendMod := ValueWhen(1, Tetik <> 0, Tetik) = 1;
+  ------------------------------------------------------------ }

@@ -1,0 +1,70 @@
+{ ============================================================
+  SEANS RESET VWAP  -  iDeal / Prime
+  ------------------------------------------------------------
+  Hacim ağırlıklı ortalama fiyat, her seans açılışında sıfırlanır.
+
+  NEDEN DÜZ Cum() KULLANILMAZ:
+   - Cum() grafiğin İLK barından başlar. Bu bir seans VWAP'i
+     değil, veri penceresinin başına çakılmış anchored VWAP'tir.
+   - Yeni barın ağırlığı 1/N olduğu için birkaç bin bar sonra
+     çizgi pratikte donar, sinyal üretmez.
+   - Değer, grafiğe yüklenen bar sayısına bağlıdır. Geçmiş
+     değerler veri uzayınca değişir -> backtest tekrarlanamaz.
+
+  Aşağıdaki kod her ikisini de çözer. SERBEST PARAMETRE YOKTUR;
+  anchor'ı takvim belirler, optimize edilecek (ve overfit
+  edilecek) bir yüzey bulunmaz.
+
+  DİKKAT EDİLECEKLER:
+   1) Gun() fonksiyon adını Prime'da doğrula (DayOfMonth vb.).
+   2) VİOP: akşam seansı (19:00-23:00) ertesi güne yazılır.
+      Çizginin 19:00'da SIFIRLANMADIĞINI grafikte gözle doğrula.
+      Sıfırlanıyorsa takvim günü yerine saat bazlı sınır kur.
+   3) Veri penceresinin İLK GÜNÜ geçersizdir (ValueWhen'in
+      geçmiş eşleşmesi yok, Bas* = 0 döner). Backtest
+      başlangıcını bir gün ileri al.
+   4) V=0 olan enstrümanlarda (XU030 gibi endeksler) VWAP
+      hesaplanamaz, kod C'ye düşer. Endekste kullanma;
+      VİOP'ta kontratın kendi grafiğinde çalıştır.
+   5) Gün içinde de bir sönüm vardır: seans sonuna doğru son
+      barın ağırlığı düşer, çizgi ağırlaşır. Bu bir hata değil,
+      VWAP'in tanımıdır. O bir REFERANS SEVİYEDİR, sinyal
+      çizgisi değil.
+  ============================================================ }
+
+YeniGun := Gun() <> Ref(Gun(), -1);
+
+TP      := (H+L+C)/3;
+KTPV    := Cum(TP*V);
+KV      := Cum(V);
+
+BasKTPV := ValueWhen(1, YeniGun, Ref(KTPV,-1));
+BasKV   := ValueWhen(1, YeniGun, Ref(KV,-1));
+
+GunKTPV := KTPV - BasKTPV;
+GunKV   := KV   - BasKV;
+
+Vwap    := If(GunKV > 0, GunKTPV/GunKV, C);
+
+Vwap
+
+
+{ ------------------------------------------------------------
+  ALTERNATİF: KAYAN (ROLLING) VWAP
+  ------------------------------------------------------------
+  Gun() güvenilir değilse ya da seans sınırı bulanıksa
+  (VİOP akşam seansı) kullanılabilir. Gün boyu sabit
+  tepkisellik verir, ama iki bedeli vardır:
+    - Sabah pencerede hâlâ dünkü barlar durur (gap kirliliği).
+    - Vade dönüşünde (rollover) eski kontratın fiyatlarını
+      ~1 seans boyunca taşır. Seans reset bunu temizler, bu
+      temizlemez. X30Y için bu ciddi bir dezavantajdır.
+
+  N'İ OPTİMİZASYONA SOKMA. Seans bar sayısına yapısal olarak
+  sabitle. Opt panelinde göründüğü an elinde parametresiz bir
+  gösterge değil, fit edilmiş bir hareketli ortalama olur.
+  Test edeceksen N=60..130 arasında TEPE değil PLATO ara.
+
+  N    := 96;   { 5dk, BIST pay 10:00-18:00 icin yaklasik }
+  Vwap := If(Sum(V,N) > 0, Sum((H+L+C)/3*V, N) / Sum(V,N), C);
+  ------------------------------------------------------------ }

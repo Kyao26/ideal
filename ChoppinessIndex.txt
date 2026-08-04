@@ -1,0 +1,74 @@
+{ ============================================================
+  CHOPPINESS INDEX (E.W. Dreiss)  -  iDeal / Prime
+  ------------------------------------------------------------
+  Piyasanın trendde mi sıkışmada mı olduğunu ölçer.
+     YÜKSEK (>61.8) = sıkışma / yatay
+     DÜŞÜK  (<38.2) = trend
+
+  YÖNSÜZDÜR. "Trend var mı" der, "yukarı mı aşağı mı" demez.
+  Asla giriş sinyali üretmez, sadece FİLTREDİR.
+
+  UYARI: Bunu Fractal Dimension Index ile karıştırma. FDI
+  farklı bir göstergedir (1-2 aralığı). Karıştırırsan eşik
+  yönünü ters kurar, tam olarak istemediğin rejimde işlem
+  açarsın.
+
+  ORİJİNAL KODA GÖRE DÜZELTMELER:
+   1) Log(10) çarpanları gereksizdi, oranda taban sadeleşir:
+        (Log(A/B)/Log(10)) / (Log(N)/Log(10))
+      = Log(A/B)/Log(N)
+      Sonuç bit bit aynı, iki gereksiz Log çağrısı gitti.
+   2) Sıfıra bölme koruması eklendi. HHV-LLV = 0 (VİOP akşam
+      seansının ölü saatlerinde 14 bar aynı fiyatta kapanabilir)
+      -> sonsuz. Sum(TR)=0 -> Log(0) -> eksi sonsuz.
+      Belirsiz durumda 50 (nötr) dönüyor: filtre ne trend ne
+      sıkışma der, sistem işlem açmaz. Sessizce 0 dönüp "tam
+      trend" demesinden iyidir.
+   3) [0,100] kırpması eklendi. Alt sınır matematiksel olarak
+      güvenli (toplam yol >= aralık), ama ÜST sınır değil:
+      ATR(1) penceredeki ilk barda bir önceki barın kapanışını
+      kullanır, o kapanış HHV/LLV penceresinin DIŞINDADIR.
+      Gap varsa TR > B olur ve CHOP 100'ü aşar. X30Y'de seans
+      açılış gap'inde görülür.
+   4) Histerezisli rejim bayrağı eklendi (aşağıda). Tek eşikle
+      CHOP 61.8 civarında bir yukarı bir aşağı geçtiğinde filtre
+      bar bar açılıp kapanır.
+
+  BAR İÇİ REPAINT: Son barın ağırlığı 1/N. Oluşan bar CHOP'u
+  gözle görülür oynatır, eşiği bar içinde geçip kapanışta geri
+  dönebilir. 5dk'da bu doğrudan hayalet sinyal demektir.
+  Sistemde MUTLAKA Ref(...,-1) ile kapanış teyidi al.
+
+  N'İ OPTİMİZASYONA SOKMA. Yapısal seç ve sabitle.
+  38.2 / 61.8 eşikleri CHOP'un standart tanımıdır, onları da
+  tarama; üçü birden optimize edilirse elinde fit edilmiş üç
+  parametreli bir sistem kalır.
+  ============================================================ }
+
+N        := 14;                              { yapısal seç, optimize etme }
+
+TRTop    := Sum(ATR(1), N);                  { TR() varsa: Sum(TR(), N) }
+Aralik   := HHV(H,N) - LLV(L,N);
+
+Ham      := If(Aralik > 0 AND TRTop > 0,
+               Log(TRTop/Aralik) / Log(N) * 100,
+               50);
+
+Chop     := Min(Max(Ham, 0), 100);
+
+Chop
+
+
+{ ------------------------------------------------------------
+  HİSTEREZİSLİ REJİM BAYRAĞI (sistemde kullanmak için)
+  ------------------------------------------------------------
+  ValueWhen en son sıfır olmayan tetiği taşır; iki eşiğin
+  arasında kalan bölgede son rejim korunur. PREV gerekmez.
+     TrendMod = 1 -> trend rejimi, işlem serbest
+     TrendMod = 0 -> sıkışma rejimi, sistem sussun
+
+  UstEsik  := 61.8;
+  AltEsik  := 38.2;
+  Tetik    := If(Chop < AltEsik, 1, If(Chop > UstEsik, -1, 0));
+  TrendMod := ValueWhen(1, Tetik <> 0, Tetik) = 1;
+  ------------------------------------------------------------ }

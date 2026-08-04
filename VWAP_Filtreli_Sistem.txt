@@ -1,0 +1,119 @@
+{ ============================================================
+  VWAP + REJİM FİLTRESİ SİSTEMİ  -  iDeal / Prime
+  5dk  |  X30Y vadeli ve pay senedi
+  ------------------------------------------------------------
+  MANTIK: VWAP yön verir, rejim filtresi izin verir.
+
+  Fiyat seans VWAP'ini yukarı keserse ve piyasa sıkışmada
+  değilse LONG; aşağı keserse ve sıkışmada değilse SHORT.
+
+  İkisi gerçekten birbirini tamamlar, üst üste bindirme değil:
+  VWAP'in en zayıf tarafı yatay piyasada çizgi etrafında
+  testere üretmesidir; rejim filtresi tam olarak o rejimde
+  sistemi susturur.
+
+  ############################################################
+  #  ÖNEMLİ: İKİ FİLTREYİ BİRDEN KULLANMA                    #
+  ############################################################
+  CHOP ile Sürtünme AYNI ŞEYİ ölçer: yol uzunluğu / net yer
+  değiştirme oranı. CHOP bunu TR ile, Sürtünme kapanış farkıyla
+  yapar. Korelasyonları yüksektir. İkisini üst üste filtre
+  olarak koyarsan çeşitlendirme sanıp tek sinyali iki kez
+  sayarsın: işlem sayısı düşer, backtest'te "filtre işe yaradı"
+  görünür, ama sağlamlık ARTMAZ, sadece örneklem küçülür.
+  Bu, overfitting'in en sinsi biçimidir.
+
+  HANGİSİ:
+   - X30Y 5dk icin SÜRTÜNME (varsayılan, aşağıda aktif).
+     Fitil bağışıklığı VİOP'ta gerçek avantaj; stop avları
+     TR'yi şişirip CHOP'u yanıltır.
+   - Bar içi menzilin bilgi taşıdığına inanıyorsan CHOP.
+     Kırılma öncesi sıkışmayı Sürtünme'den daha iyi yakalar.
+
+  İkisini de test edip HANGİSİ DAHA İYİ BACKTEST VERDİYSE ONU
+  SEÇME. Bu da bir fit biçimidir. Enstrümanın karakterine göre
+  önden karar ver.
+
+  ############################################################
+  #  OPTİMİZASYON UYARISI                                     #
+  ############################################################
+  Bu dosyada dört sabit var: FiltreN, AltEsik, UstEsik ve
+  (kullanılırsa) CHOP'un N'i. HİÇBİRİNİ Opt paneline açma.
+  VWAP tarafı zaten parametresizdir; onu parametresiz tutmak
+  sadece bir cepheyi kapatır. 5dk'da asıl kanama sistem
+  editöründeki stop / kar-al / izleyen stop alanlarındadır.
+  Kayma ve komisyonu gerçekçi girmeden alınan 5dk backtest'i,
+  gösterge ne kadar temiz olursa olsun anlamsızdır.
+
+  ############################################################
+  #  KURULUM KONTROL LİSTESİ                                  #
+  ############################################################
+   1) Gun() fonksiyon adını Prime'da doğrula.
+   2) VİOP: VWAP çizgisinin 19:00'da SIFIRLANMADIĞINI grafikte
+      gözle doğrula. Akşam seansı ertesi güne yazılır.
+   3) Backtest başlangıcını veri penceresinin ilk gününden
+      bir gün ileri al (ValueWhen'in geçmiş eşleşmesi yok).
+   4) Rollover: sürekli kontratta vade dönüşü fiyatı sıçratır
+      ve hacmi böler. Seans reset bunu ertesi gün temizler,
+      ama dönüş gününün sonuçlarını ayrı incele.
+   5) Endekste (V=0) çalıştırma; kontratın kendi grafiğinde
+      çalıştır.
+  ============================================================ }
+
+
+{ --- 1) REJİM FİLTRESİ: SÜRTÜNME (1 - Efficiency Ratio) --- }
+
+FiltreN  := 10;
+Y        := Abs(C - Ref(C,-FiltreN));
+G        := Sum(Abs(C - Ref(C,-1)), FiltreN);
+ER       := If(G > 0, Y/G, 0);
+Surtunme := Mov(1 - ER, 3, S);
+
+AltEsik  := 0.35;
+UstEsik  := 0.65;
+Tetik    := If(Surtunme < AltEsik, 1, If(Surtunme > UstEsik, -1, 0));
+TrendMod := ValueWhen(1, Tetik <> 0, Tetik) = 1;
+
+
+{ --- 1b) ALTERNATİF FİLTRE: CHOPPINESS INDEX ---------------
+  Yukarıdaki blok yerine kullan. İKİSİNİ BİRDEN AÇMA.
+
+  FiltreN  := 14;
+  TRTop    := Sum(ATR(1), FiltreN);
+  Aralik   := HHV(H,FiltreN) - LLV(L,FiltreN);
+  Ham      := If(Aralik > 0 AND TRTop > 0,
+                 Log(TRTop/Aralik) / Log(FiltreN) * 100, 50);
+  Chop     := Min(Max(Ham,0),100);
+  AltEsik  := 38.2;
+  UstEsik  := 61.8;
+  Tetik    := If(Chop < AltEsik, 1, If(Chop > UstEsik, -1, 0));
+  TrendMod := ValueWhen(1, Tetik <> 0, Tetik) = 1;
+  ---------------------------------------------------------- }
+
+
+{ --- 2) YÖN: SEANS RESET VWAP ------------------------------ }
+
+YeniGun := Gun() <> Ref(Gun(), -1);
+
+TP      := (H+L+C)/3;
+KTPV    := Cum(TP*V);
+KV      := Cum(V);
+
+BasKTPV := ValueWhen(1, YeniGun, Ref(KTPV,-1));
+BasKV   := ValueWhen(1, YeniGun, Ref(KV,-1));
+
+GunKV   := KV - BasKV;
+Vwap    := If(GunKV > 0, (KTPV - BasKTPV)/GunKV, C);
+
+
+{ --- 3) SİNYALLER ------------------------------------------
+  Her şey Ref(...,-1) ile bir bar geriden okunuyor.
+  Filtre bar içinde oynadığı için teyitsiz alırsan backtest
+  gerçek dışı iyi çıkar. Bu kaydırma pazarlık konusu değil.
+
+  Platformda ayrı Al / Sat kutuları varsa AL ve SAT
+  satırlarının sağ tarafını ilgili kutuya yapıştır.
+  ---------------------------------------------------------- }
+
+AL  := Ref(Cross(C, Vwap) AND TrendMod, -1);
+SAT := Ref(Cross(Vwap, C) AND TrendMod, -1);
