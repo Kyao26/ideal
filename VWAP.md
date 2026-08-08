@@ -1,105 +1,209 @@
-# VWAP (Hacim Ağırlıklı Ortalama Fiyat)
+# VWAP (Hacim Ağırlıklı Ortalama Fiyat) — Matriks Prime
 
 Seans boyunca hacme göre ağırlıklandırılmış ortalama fiyatı gösteren, kurumsal bir adil değer referans noktası.
 
-**Seviye:** Orta — formülü basittir, asıl zorluk başlangıç noktası (anchor) seçimindedir.
+**Seviye:** Orta — formülü basittir, asıl zorluk başlangıç noktası (anchor) seçimi ve Prime'da seans sıfırlamasının kurulmasıdır.
+
+> Bu dokümandaki formüller **Matriks Prime** formül dili içindir. Doğrulama durumu için [Doğrulama Notu](#doğrulama-notu) bölümüne bakın.
 
 ## Nedir
 
-VWAP (Hacim Ağırlıklı Ortalama Fiyat), bir menkul kıymetin belirli bir başlangıç noktasından bu yana işlem gördüğü ortalama fiyattır; ancak her fiyat seviyesine eşit ağırlık veren basit bir ortalama değil, her seviyede ne kadar hacim işlem gördüğüne göre ağırlıklandırılmış bir ortalamadır.
+VWAP, bir menkul kıymetin belirli bir başlangıç noktasından bu yana işlem gördüğü ortalama fiyattır; her fiyat seviyesine eşit ağırlık veren basit bir ortalama değil, her seviyede ne kadar hacim işlem gördüğüne göre ağırlıklandırılmış bir ortalamadır.
 
-Kurumlar onu bir uygulama (execution) referansı olarak kullanır: VWAP'a yakın ya da ondan daha iyi bir fiyattan gerçekleştirilen büyük bir emir iyi uygulama sayılır, ondan uzakta gerçekleşen bir emir kötü uygulama gibi görünür. Bunun önemli bir yan etkisi vardır: VWAP yaygın bir kıyas ölçütü olduğu için, gün boyunca onu hedefleyen execution algoritmaları fiyatı kısmen VWAP'a doğru çeker. Yani araç bir ölçüde kendi kendini gerçekleştirir — VWAP'ın "işe yaramasının" sebebi bir doğa yasası değil, ona göre ölçülen çok sayıda emir akışıdır.
+Kurumlar onu bir uygulama (execution) referansı olarak kullanır: VWAP'a yakın ya da ondan iyi bir fiyattan gerçekleşen büyük emir iyi uygulama sayılır. Bunun önemli bir yan etkisi var: VWAP yaygın bir kıyas ölçütü olduğu için, gün boyunca onu hedefleyen execution algoritmaları fiyatı kısmen VWAP'a doğru çeker. Araç bir ölçüde kendi kendini gerçekleştirir.
 
-VWAP kümülatif bir hesaptır: bir başlangıç noktasından itibaren biriken toplamlarla çalışır. Bu yüzden en kritik tasarım kararı, o başlangıç noktasının nerede olduğudur.
+VWAP kümülatif bir hesaptır — bir başlangıç noktasından itibaren biriken toplamlarla çalışır. En kritik tasarım kararı o başlangıç noktasının nerede olduğudur.
 
-## Nasıl Hesaplanır
+## Prime'da Tipik Fiyat Meselesi: `W` Kullanın
 
-Her bar için tipik fiyat:
+Ders kitabı VWAP anlatımları tipik fiyatı `(H+L+C)/3` diye tanımlar. Bu bir **yaklaşımdır** — bar içindeki gerçek hacim dağılımını bilmediğiniz için üç noktadan tahmin edersiniz.
 
-```
-TP = (Yüksek + Düşük + Kapanış) / 3
-```
-
-Başlangıç noktasından itibaren biriktirilerek:
+Matriks Prime'da buna gerek yok. **`W` = Ağırlıklı Ortalama Fiyat (AOF)**, borsanın o bar için yayımladığı gerçek hacim ağırlıklı fiyattır. Yani `W` zaten bar içi VWAP'tır.
 
 ```
-VWAP = Σ(TP × Hacim) / Σ(Hacim)
+{ Bunu yapmayın — Prime'da gereksiz bir kalite kaybı }
+tp := (H+L+C)/3;
+
+{ Bunu yapın — bar içi gerçek hacim ağırlıklı fiyat }
+tp := W;
 ```
 
-Standart sapma bantları için hacim ağırlıklı varyans kullanılır — ağırlıklandırılmış bir serinin sıradan standart sapması değil:
+`CUM(W*V)/CUM(V)` bu yüzden `(H+L+C)/3` tabanlı bir VWAP'tan **daha doğrudur**, yaklaşık değildir. TradingView'dan taşınan formülleri Prime'a çevirirken hlc3'ü olduğu gibi bırakmak yaygın bir hatadır.
+
+İlgili not: `TLVOL` (TL cinsinden ciro) tanımı gereği ≈ `W*V` olduğundan, `CUM(TLVOL)/CUM(V)` da aynı sonucu verir ve daha kısadır. Kendi verinizde bir barda `TLVOL/V ≈ W` olduğunu doğrulayıp kullanabilirsiniz.
+
+## Seans VWAP'ı — Temel Formül
+
+Prime'da `CUM()` grafiğin başından birikir ve **seansta sıfırlanmaz**. Seans sıfırlaması, gün başındaki birikimi yakalayıp çıkararak taklit edilir:
 
 ```
-Var  = Σ(Hacim × TP²) / Σ(Hacim) − VWAP²
-Bant = VWAP ± k × √Var
+{ Seans VWAP'ı — gün içi periyotlarda }
+d := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+
+(CUM(W*V) - d) / (CUM(V) - f)
 ```
 
-Burada `k` çarpandır (genellikle 1 ve 2 birlikte çizilir). Birçok platform stdev yerine yüzde tabanlı bant seçeneği de sunar: `Bant = VWAP × (1 ± %k)`. Bu ikisi farklı şeyler ölçer — stdev bandı o seansın gerçek dağılımına uyum sağlar, yüzde bandı sabit genişliktedir.
+`d` ve `f`, günün ilk barından bir önceki bardaki (yani dünkü kapanıştaki) birikimi tutar. Şimdiki birikimden çıkarınca geriye yalnızca bugünkü birikim kalır. VWAP iki kümülatif toplamın oranı olduğu için bu hile temiz çalışır.
 
-### Bollinger Bantlarıyla farkı
+**Dikkat:** `DAYOFMONTH() <> REF(DAYOFMONTH(),-1)` sıfırlaması yalnızca gün içi barlarda anlamlıdır. Günlük periyotta her bar yeni gündür → her barda sıfırlanır → VWAP `W`'ye çöker. Bu aslında doğru davranıştır (seans VWAP'ı günlükte anlamsızdır) ama sessizce olur, hata vermez.
 
-Benzetme yardımcıdır ama yarıda bırakılırsa yanıltır. Bollinger bantları sabit N barlık kayan bir pencerede hesaplanır; bu yüzden daralıp genişlerler ve daralma ("squeeze") volatilite sıkışması olarak okunur.
+Haftalık veya aylık sıfırlama isterseniz koşulu değiştirin:
 
-VWAP bantları ise seans başından itibaren kümülatif hesaplanır. Örneklem büyüdükçe her yeni barın toplam dağılıma etkisi azalır, dolayısıyla bantların **tepkiselliği seans ilerledikçe söner**. Seansın sonunda bantların hareketsizleşmesi bir volatilite sinyali değil, sadece paydanın büyümüş olmasıdır. Bollinger refleksini buraya taşımayın.
+```
+{ Aylık reset }
+MONTH() <> REF(MONTH(), -1)
+```
+
+## Bantlar: İki Ayrı Yapı, İki Ayrı Anlam
+
+Burada bir çatal var ve hangisini seçtiğiniz bandın **nasıl okunacağını** değiştirir.
+
+### (a) Kümülatif hacim ağırlıklı bant
+
+Ders kitabı versiyonu. Aynı çıkarma hilesini kareler toplamına da uygularsınız:
+
+```
+{ VWAP + kümülatif hacim ağırlıklı stdev bandı }
+d  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+g  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*W*V), -1));
+
+vw := (CUM(W*V) - d) / (CUM(V) - f);
+vr := (CUM(W*W*V) - g) / (CUM(V) - f) - vw*vw;
+
+vw + 2 * SQRT(MAX(vr, 0))
+```
+
+Alt bant için son satırı `vw - 2*SQRT(MAX(vr,0))` yapın. `MAX(vr,0)` kayan nokta hatasından doğabilecek küçük negatif varyansa karşı korumadır; `MAX` desteklenmiyorsa `IF(vr>0, vr, 0)` yazın.
+
+**Okunuşu:** Bu gerçekten hacim ağırlıklı dağılımdır. Ama seans başından kümülatif olduğu için örneklem büyüdükçe her yeni barın etkisi azalır — **bandın tepkiselliği seans ilerledikçe söner**. Kapanışa yakın bandın hareketsizleşmesi bir volatilite sinyali değil, sadece paydanın büyümüş olmasıdır. Bollinger'ın squeeze okuması buraya **taşınmaz**.
+
+### (b) Rolling stdev bandı — yani VWAP tabanlı Bollinger
+
+```
+{ VWAP + kayan pencere stdev bandı }
+d  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+
+vw := (CUM(W*V) - d) / (CUM(V) - f);
+
+vw + 2 * STDEV(vw, 20)
+```
+
+**Okunuşu:** Bunu yazdığınız anda elinizdeki şey, basis'i hareketli ortalama yerine VWAP olan bir **Bollinger Bandı**dır. Kayan pencere semantiği birebir geçerlidir — squeeze/expansion okuması çalışır, (a)'daki "tepkisellik söner" uyarısı çalışmaz.
+
+**Ama bir taviz var:** `STDEV()` hacim ağırlıklı **değildir**. (b) melez bir şey üretir: merkez çizgi hacim ağırlıklı, dağılım ağırlıksız. Ne ders kitabı VWAP bandıdır ne de saf Bollinger. Okunaklı ve stabil bir banttır, kullanılabilir — ama "hacim ağırlıklı 2 sigma" diye yorumlamak yanlış olur.
+
+### Hangisi?
+
+| | (a) Kümülatif | (b) Rolling / BB |
+|---|---|---|
+| Dağılım hacim ağırlıklı mı | Evet | Hayır |
+| Seans içinde davranış | Tepkisellik söner | Sabit tepkisellik |
+| Squeeze/expansion okunur mu | Hayır | Evet |
+| Yazması | Uzun | Kısa |
+
+Gerçekten hacim ağırlıklı uçlar arıyorsanız (a). Tanıdık bir bant davranışı ve BB refleksi istiyorsanız (b) — yeter ki ne ölçtüğünü bilerek kullanın.
+
+## Sabitlenmiş VWAP (Anchored)
+
+Trader başlangıç noktasını kendi seçer — bir swing dip, bir bilanço tarihi — ve günlük sıfırlama olmadan oradan itibaren birikir. Ölçtüğü şey: *o olaydan bu yana işlem yapan herkesin ortalama maliyet tabanı*.
+
+```
+{ Belirli bir tarihe sabitlenmiş VWAP }
+anc := YEAR()=2026 AND MONTH()=3 AND DAYOFMONTH()=10;
+ilk := anc AND REF(anc, -1) = 0;          { o günün ilk barı }
+
+d := VALUEWHEN(1., ilk, REF(CUM(W*V), -1));
+f := VALUEWHEN(1., ilk, REF(CUM(V), -1));
+
+(CUM(W*V) - d) / (CUM(V) - f)
+```
+
+`REF(anc,-1)=0` şartı önemli: onsuz `VALUEWHEN(1., ...)` o günün **son** barını yakalar, ilkini değil.
+
+Anchored VWAP gün içi olmak zorunda değildir; günlük ve haftalık grafiklerde de anlamlıdır. Profesyonel kullanımın büyük kısmı da oradadır.
+
+## Kayan VWAP (Rolling) — Karıştırmayın
+
+Rolling VWAP'ın sabit başlangıç noktası **yoktur**; son N bar üzerinde kayan pencereyle hesaplanır:
+
+```
+{ 200 barlık rolling VWAP — anchored ile aynı şey DEĞİL }
+SUM(W*V, 200) / SUM(V, 200)
+```
+
+Anchored ile rolling sık sık eş anlamlı sanılır; değildir. Rolling, "bir olaydan bu yana maliyet tabanı" sorusunu **yanıtlamaz** — hacim ağırlıklı bir hareketli ortalama gibi davranır.
+
+Anchor seçimi metodolojisi basit: hangi soruyu sorduğunuza karar verin.
+"Bugün alanlar nerede?" → seans VWAP'ı.
+"Bilanço sonrası girenler nerede?" → o tarihe sabitlenmiş AVWAP.
+"Son N barın hacim ağırlıklı eğilimi ne?" → rolling VWAP.
 
 ## Traderlar Nasıl Kullanır
 
-Gün içi traderlar seans VWAP'ını günün adil değer eksen noktası olarak ele alır. Mekanizma şu: fiyat VWAP'ın üzerindeyse, o gün alım yapanların ortalaması kârdadır; altındaysa zarardadır. VWAP'ın tekrar geçilmesi bu yüzden gün içi kontrolde bir değişim olarak izlenir.
+Fiyat VWAP'ın üzerindeyse o gün alım yapanların ortalaması kârdadır; altındaysa zarardadır. VWAP'ın tekrar geçilmesi bu yüzden gün içi kontrolde bir değişim olarak izlenir.
 
-Stdev bantları fiyatın adil değerden ne kadar uzaklaştığını gösterir. 2-stdev bandına doğru bir itiş, aşırı alım/aşırı satım uç noktasına benzer okunur; ortalamaya dönüş scalp'leri için ya da VWAP'a yakın başlayan bir hareketin hedefi olarak kullanışlıdır.
+Explorer/tarama için kesişim:
 
-Seans VWAP'ının yanında sık kullanılan diğer seviyeler: **önceki günün VWAP'ı** (bugünün açılışının dünün adil değerine göre nerede durduğunu gösterir), haftalık ve aylık VWAP.
+```
+d := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
 
-## Yaygın Ayarlar ve Varyasyonlar
+CROSS(C, (CUM(W*V) - d) / (CUM(V) - f))
+```
 
-En önemli ayar başlangıç noktasıdır. Üç ayrı yapı vardır ve bunlar birbirinin eş anlamlısı **değildir**:
-
-**Seans VWAP'ı.** Her işlem gününde açılışta sıfırlanır. Standart kurumsal referans budur.
-
-**Sabitlenmiş VWAP (Anchored VWAP).** Trader başlangıç noktasını kendi seçer — bir swing dip, bir kazanç açıklama tarihi, bir haftanın başlangıcı — ve günlük sıfırlama olmadan o noktadan itibaren kümülatif hesaplanır. Ölçtüğü şey: *o olaydan bu yana işlem yapan herkesin ortalama maliyet tabanı*. Gün içi olmak zorunda değildir; günlük ve haftalık grafiklerde de anlamlıdır.
-
-**Kayan VWAP (Rolling VWAP).** Sabit başlangıç noktası yoktur; son N bar üzerinde kayan pencereyle hesaplanır (örneğin 200 barlık rolling VWAP). Pencere sürekli ileri kayar, dolayısıyla "bir olaydan bu yana maliyet tabanı" sorusunu **yanıtlamaz** — hacim ağırlıklı bir hareketli ortalama gibi davranır.
-
-Anchor seçimi metodolojisi basittir: hangi soruyu sorduğunuza karar verin. "Bugün alanlar nerede?" → seans VWAP'ı. "Bilanço sonrası girenler nerede?" → o tarihe sabitlenmiş AVWAP. "Son N barın hacim ağırlıklı eğilimi ne?" → rolling VWAP.
-
-İkinci kaldıraç bant çarpanıdır: 1 stdev daha dar ve sık test edilen bir bant verir, 2 stdev fiyatın daha seyrek ulaştığı ama ulaştığında daha büyük bir ortalamaya dönüş potansiyeli sunan bir uç nokta verir.
+Seans VWAP'ının yanında sık kullanılan diğer seviyeler: önceki günün VWAP'ı, haftalık ve aylık VWAP.
 
 ## Tuzaklar ve Yanlış Anlamalar
 
-**"Seans VWAP'ı" ile "VWAP"ı karıştırmayın.** Gün içi kısıtı VWAP'ın kendisine değil, günlük sıfırlama mekanizmasına aittir. Seans VWAP'ı günlük grafikte anlamsızdır — sıfırlanacak bir seans açılışı yoktur ve kümülatif toplamları seans sınırının ötesine taşıyan bir uygulama, giderek düzleşen anlamsız bir çizgi üretir. Buna karşılık sabitlenmiş VWAP günlük ve haftalık grafiklerde gayet anlamlıdır; profesyonel kullanımın büyük kısmı da oradadır.
+**"Seans VWAP'ı" ile "VWAP"ı karıştırmayın.** Gün içi kısıtı VWAP'ın kendisine değil, günlük sıfırlama mekanizmasına aittir. Seans VWAP'ı günlük grafikte anlamsızdır; sabitlenmiş VWAP ise günlük ve haftalıkta gayet anlamlıdır.
 
-**Seansın tanımı sabit değil, bir parametredir.** Vadeli işlemlerde hesabın normal seansla (RTH) mı yoksa uzatılmış seansla (ETH) mı başlatıldığı VWAP'ı tamamen değiştirir. Kriptoda "seans" zaten keyfîdir (çoğunlukla 00:00 UTC). Grafikteki çizgiye güvenmeden önce hangi açılışa göre sıfırlandığını bilin.
+**Seansın tanımı bir parametredir.** Vadelide normal seans (RTH) mı uzatılmış seans (ETH) mı baz alındığı VWAP'ı tamamen değiştirir. Kriptoda "seans" zaten keyfîdir. Prime'da bunu `DAYOFMONTH()` reset koşulunuz belirler — yani seçim sizin, ve sessizdir.
 
-**Güvenilir hacim şart.** Spot FX'te merkezi bir hacim verisi yoktur; platformlar tick volume kullanır. Orada VWAP büyük ölçüde bir yaklaşımdır, kurumsal anlamda "hacim ağırlıklı ortalama fiyat" değildir.
+**Güvenilir hacim şart.** BIST'te `W` ve `V` sağlamdır. Spot FX'te merkezi hacim yoktur; orada VWAP bir yaklaşımdır.
 
-**İki uçtaki atalet sorunu.** Seansın ilk dakikalarında payda küçüktür; VWAP gürültülüdür ve zıplar. Seansın sonunda payda büyümüştür; VWAP neredeyse çivilenmiştir. Bu aynı mekaniğin iki yüzüdür ve pratik sonucu şudur: erken seans VWAP kesişimi zayıf bilgidir, geç seans kesişimi güçlüdür — çünkü onu üretmek gerçekten büyük hacim gerektirmiştir.
+**İki uçtaki atalet.** Seansın ilk dakikalarında payda küçüktür, VWAP gürültülüdür ve zıplar. Sonunda payda büyümüştür, VWAP neredeyse çivilenmiştir. Aynı mekaniğin iki yüzü — pratik sonucu: erken seans kesişimi zayıf bilgidir, geç seans kesişimi güçlüdür, çünkü onu üretmek gerçekten büyük hacim gerektirmiştir.
 
-**Yönlü bir gösterge değildir.** VWAP bir adil değer referansıdır. Güçlü bir trend gününde fiyat, hiçbir "dönüş" gerçekleşmeden saatlerce onun bir tarafında kalabilir.
+**Yönlü bir gösterge değildir.** Güçlü bir trend gününde fiyat, hiçbir "dönüş" olmadan saatlerce çizginin bir tarafında kalabilir.
 
 ## Grafikte Deneyin
 
-1. **5 veya 15 dakikalık** bir AAPL grafiğinde seans VWAP'ını yükleyin. Saatlik kullanmayın: ABD seansı 6.5 saattir, yani saatlik grafikte seans başına yalnızca ~7 bar düşer — kümülatif bir göstergenin davranışını 7 veriyle okuyamazsınız.
-2. Standart seans başlangıcını, yakın bir swing dipten sabitlenmiş bir AVWAP ile karşılaştırın; iki çizginin ne kadar farklı davrandığına bakın.
-3. Bant çarpanını 1'den 2'ye genişletin ve fiyatın dış banda gerçekte ne kadar daha seyrek dokunduğunu gözlemleyin.
-4. Güçlü bir trend günü ile dalgalı bir yatay gün seçip karşılaştırın: trend günleri çizginin bir tarafına yapışır, yatay günler tekrar tekrar üzerinden geçer.
-5. Aynı seansı açılıştan kapanışa izleyip bantların tepkiselliğinin nasıl söndüğünü not edin.
+1. **5 veya 15 dakikalık** bir grafikte seans VWAP'ını yükleyin. Saatlik kullanmayın: BIST seansı saatlik grafikte seans başına çok az bar verir, kümülatif bir göstergenin davranışı okunmaz.
+2. `W` tabanlı VWAP ile `(H+L+C)/3` tabanlısını aynı grafiğe koyup farkı görün — özellikle hacmin bar içinde tek tarafa yığıldığı barlarda ayrışırlar.
+3. (a) ve (b) bantlarını üst üste çizin. Seans başında birbirine yakın, kapanışa doğru belirgin biçimde ayrışacaklardır — (a) donarken (b) nefes almaya devam eder.
+4. Bant çarpanını 1'den 2'ye genişletin, fiyatın dış banda ne kadar daha seyrek dokunduğuna bakın.
+5. Güçlü bir trend günü ile yatay bir günü karşılaştırın: trend günleri çizginin bir tarafına yapışır, yatay günler tekrar tekrar üzerinden geçer.
 
 ## Formül Özeti
 
 ```
-TP   = (Yüksek + Düşük + Kapanış) / 3
-VWAP = Σ(TP × Hacim) / Σ(Hacim)          [başlangıç noktasından itibaren kümülatif]
-Var  = Σ(Hacim × TP²) / Σ(Hacim) − VWAP²
-Bant = VWAP ± k × √Var
+Seans VWAP  = (CUM(W*V) - d) / (CUM(V) - f)
+Kümülatif σ = SQRT( (CUM(W*W*V)-g)/(CUM(V)-f) - VWAP² )     → bant: VWAP ± k*σ
+Rolling  σ  = STDEV(vw, n)                                   → bant: VWAP ± k*σ  (= BB)
+Rolling VWAP = SUM(W*V, n) / SUM(V, n)
 ```
 
-Seans VWAP'ında toplamlar her seans açılışında sıfırlanır. Sabitlenmiş VWAP'ta sıfırlanmaz. Kayan VWAP'ta toplamlar N barlık pencere üzerinden alınır.
+`d`, `f`, `g` = seçilen sıfırlama noktasındaki birikim değerleri.
 
 ## Önemli Noktalar
 
-- VWAP hacim ağırlıklı ortalama fiyattır — basit bir hareketli ortalama değildir. Belirli bir başlangıç noktasından itibaren kümülatiftir.
-- Gün içi kısıtı VWAP'ın kendisine değil **seans VWAP'ının günlük sıfırlamasına** aittir. Sabitlenmiş VWAP günlük ve haftalık grafiklerde de anlamlıdır.
-- Kayan (rolling) VWAP ile sabitlenmiş (anchored) VWAP aynı şey değildir: biri kayan pencere, diğeri sabit başlangıç noktası kullanır ve farklı soruları yanıtlarlar.
-- Bantlar hacim ağırlıklı varyanstan hesaplanır. Bollinger'a benzer görünürler ama dinamikleri farklıdır: genişlik değişimi volatiliteden çok örneklem büyümesinden gelir.
-- VWAP'ın referans gücü kısmen refleksiftir — onu hedefleyen execution algoritmaları fiyatı ona doğru çeker.
-- Erken seansta gürültülü, geç seansta atıl. Kesişimlerin bilgi değeri seans içinde değişir.
-- Güvenilir hacim verisi gerektirir; spot FX'te tick volume üzerinden hesaplanır ve yalnızca bir yaklaşımdır.
+- VWAP hacim ağırlıklı ortalama fiyattır — hareketli ortalama değildir, bir başlangıç noktasından kümülatiftir.
+- Prime'da tipik fiyat için `W` (AOF) kullanın; `(H+L+C)/3` gereksiz bir yaklaşımdır.
+- `CUM()` sıfırlanmaz; seans reset'i `VALUEWHEN` + `REF` çıkarma hilesiyle kurulur.
+- Bant seçimi anlamı değiştirir: kümülatif bant hacim ağırlıklıdır ama seans içinde donar; rolling bant donmaz ama hacim ağırlıklı değildir ve fiilen VWAP tabanlı Bollinger'dır.
+- Gün içi kısıtı VWAP'a değil seans sıfırlamasına aittir; anchored VWAP günlük/haftalıkta da anlamlıdır.
+- Rolling (kayan pencere) ile anchored (sabit başlangıç) aynı şey değildir, farklı soruları yanıtlarlar.
+- VWAP'ın referans gücü kısmen refleksiftir — onu hedefleyen algoritmalar fiyatı ona doğru çeker.
+- Erken seansta gürültülü, geç seansta atıl; kesişimlerin bilgi değeri seans içinde değişir.
+
+## Doğrulama Notu
+
+Bu ortamda Matriks Prime çalıştırılamadığı için formüller test edilmedi.
+
+- **Seans VWAP'ı** (temel formül ve `CROSS` taraması): Matriks destek forumundaki topluluk formülüne dayanıyor, yapısı yerleşik.
+- **Kümülatif bant, anchored VWAP, rolling VWAP**: aynı çıkarma hilesinin genişletilmesiyle bu doküman için türetildi, **doğrulanmadı**. Özellikle `VALUEWHEN`'in kaçıncı oluşumu döndürdüğünü ve `MAX`/`SQRT` desteğini kendi kurulumunuzda teyit edin.
+- `TLVOL ≈ W*V` eşitliği tanımdan bekleniyor ama ölçülmedi.
+
+Kaynaklar: [Matriks Destek — VWAP indikatörü](https://destek.matriksdata.com/?qa=15741/vwap-indikatoru), [Matriks Destek — W (ağırlıklı ortalama fiyat) ile işlem yapma](https://destek.matriksdata.com/?qa=10350/wagirlikli-ortalama-fiyat-ile-islem-yapma)
