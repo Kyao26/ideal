@@ -1,5 +1,15 @@
 # Proje Bağlamı
 
+## Platform kararı (verildi, yeniden açılmayacak)
+
+Hedef **Matriks Prime**. MatriksIQ ve iDeal değerlendirildi, seçilmedi. Karar
+bilinçli; aşağıdaki bilinen takas kabul edilmiş durumda:
+
+- Prime formülleri MatriksIQ'ya doğrudan taşınmaz, dönüştürme gerekir.
+- Prime, MetaStock türevi bir DSL kullanır; iDeal ve MatriksIQ AlgoTrader ise C#.
+
+Bu konuyu tekrar gündeme getirme; Prime'a göre üret.
+
 ## Hedef platform: Matriks Prime
 
 Bu repoda üretilen **yeni** indikatör, sistem ve doküman içeriği **Matriks Prime**
