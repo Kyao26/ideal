@@ -1,23 +1,193 @@
-{ ==============================================================
-  ST_ADP_RMI + VWAP KAPISI — Matriks Prime
-  Dört kutu ayrı ayrı yapıştırılır. Her kutu bağımsızdır.
+ST_ADP_RMI_VWAP_v1
+==================
+ST_ADP_RMI (ATR omurga) + gunluk VWAP yon kapisi
+Hedef enstruman: X30YVADE 5dk
+Tarih: 2026-08-04
 
-  KUTU EŞLEŞME KONTROLÜ (kopyaladıktan sonra mutlaka bakın)
-      Kutu 1 ALIŞ        ve Kutu 4 POZ.KAPAMA  -> Cross(C, ST)
-      Kutu 2 SATIŞ       ve Kutu 3 AÇIĞA SATIŞ -> Cross(ST, C)
-  1 ile 4 eşleşmiyorsa ya da 2 ile 3 eşleşmiyorsa hata vardır.
-  Sezgi tersini söylediği için en sık yapılan hata budur.
+TASARIM NOTU — NE DEGISTI, NE DEGISMEDI:
+  DEGISMEDI: ST omurgasi (hl2, atrv, fUp, fDn, dir, ST), AP=14, RMI(C,20,5),
+             coeff eslemesi, SELL/COVER cikis kosullari
+  SABITLENDI: coeff = 1.5 + 0.50*(1-a/50)   (kullanici secimi)
+  EKLENDI:   VWAP yon kapisi, SADECE BUY ve SHORT'a.
+             BUY  -> LFIL = SOK AND C>vwap
+             SHORT-> SFIL = SOK AND C<vwap
+             SELL ve COVER'a ne kapi ne TF eklendi (cikis serbest kurali).
+             Kapi cikisa da eklenirse LFIL=0 iken giris de cikis da kapanir,
+             pozisyon suresiz kilitlenir. Bilerek eklenmedi.
+  TF DUZELTILDI: eski TF (T>=915 AND T<=1090) ucuncu pencereyi 15:15'te
+             basliyordu; 15:05 ve 15:10 barlari 51 gunun 50'sinde MEVCUT
+             oldugu halde disarida kaliyordu (gunde 2 bar kor nokta,
+             gunduz seansinin %1.3'u). Ikinci ve ucuncu pencere birlestirildi.
+             Ust sinir 1090 -> 1085. Bu veride 18:10 bari hic yok, son gunduz
+             bari 18:05 (T=1085); 1085 yazmak niyeti gorunur kilar.
+             12:26-12:29 bosugu korundu — hicbir 5dk barina denk gelmiyor.
+             ALT SINIR 615 -> 585 (09:45), kullanici karari 2026-08-04.
+  SEANS SONU KAPAMA EKLENDI: cikis kutularina "OR T>=1080" (18:00).
+             Kullanici karari 2026-08-04. Canli protokolle (her aksam
+             17:30-18:00 manuel kapatma) uyumlu hale getirir.
 
-  OMURGA DEĞİŞTİRİLMEDİ. Üç PREV satırı (fUp, fDn, dir) çalışan
-  dosyadaki hâliyle, aynı bağıl konumda duruyor. Omurga bloğunun
-  içine satır eklemeyin.
-  ============================================================== }
+!!! COZULMESI GEREKEN CAKISMA — ILK KOSUDAN ONCE OKU:
+    TF ust siniri 1085, kapama esigi 1080. T=1080 (18:00 bari) ve T=1085
+    (18:05 bari) barlarinda GIRIS HALA ACIK ama kapama kosulu da AKTIF.
+    Ayni barda hem giris hem cikis sinyali uretilir; Matriks'in bu durumda
+    ne yapacagi belirsizdir (acip ayni bar kapatabilir ya da girisi yutabilir).
+    ONERI: TF ust sinirini 1070 (17:50 bari, kapanisi 17:55) yap. Boylece
+    son giris 17:55'te dolar, 18:00 barinda duz kapama calisir, cakisma olmaz.
+    Kullanici onayi bekliyor — su an 1085 birakildi.
+
+OPT: YOK. Tek kosu. VWAP kapisi parametresiz, coeff sabit.
+     Optimizasyon ayari kapatilabilir.
+
+SYSTEM TESTER AYARLARI (CCCC — TEK GECERLI PROTOKOL):
+  Alis / Satis / Aciga Satis / Poz. Kapama:  Kapanis  (dordu de)
+  Bar Onceki Fiyatlari Kullan:               0
+  Komisyon Orani (binde):                    0.4      (bacak basina uygulanir)
+  Kayma (Slippage):                          0.1 Yuzde
+  Tum Pozisyonlari Son Barda Kapat:          isaretli
+  Islem Tipi:                                TUM islemleri yap
+  HL2 + Bar Onceki=1 protokolu GECERSIZDIR (tur basina ~100 p gerceklesemez
+  avantaj). Eski dosyalardaki o ayar bloklari kullanilmayacak.
+
+KIYAS KOSUSU — ZORUNLU:
+  Referans = ST_ADP_RMI kapisiz (ayni coeff, ayni TF), AYNI donem, AYNI CCCC
+  ayarlari. Kapinin degeri ancak bu farkla olculur.
+  Referans kosusunda TF'yi KALDIRMA — iki degisken birden oynar (kapi + saat)
+  ve fark ayirt edilemez.
+
+W VERISI — KOD KORUMALI, YINE DE BAK:
+  W = Weighted Average (bar bazinda agirlikli ortalama, KAHIN klavuz s8).
+  X30YVADE'de dolu akip akmadigi dogrulanmadi. WP:=If(W>0,W,(H+L+C)/3)
+  bosluk halinde tipik fiyata duser, sessiz olum imkansiz.
+  Teshis: Indicator Builder'a tek satir "W" yazip 5dk grafige bas. Fiyatin
+  icinde seyrediyorsa dolu, duz sifir cizgisiyse bos.
+
+SAYISAL NOT — VARYANS NEDEN KAYDIRILMIS HESAPLANIYOR:
+  Ham E[x^2]-E[x]^2 formu iki buyuk sayinin farki olarak kucuk bir sayi
+  uretir (katastrofik iptal). X30YVADE 5dk 7516 barda olculdu:
+      ham formul, float32   -> ort hata %85, sap=0 orani %17-21
+      ham formul, float64   -> hata yok
+      kaydirilmis, float32  -> ort hata %0.26, sap=0 orani %0
+      kaydirilmis, float64  -> hata yok
+  Prime'in ic duyarliligi bilinmiyor. Kaydirma her iki durumda da dogru
+  sonuc verdigi icin kullanildi. Referans: KAY = gun basi onceki kapanis,
+  gun icinde sabit oldugu icin cebir birebir korunur (varyans kaydirmaya
+  duyarsiz). Buyuklukler ~6800 kat kuculur. Maliyeti yok.
+  V hem payda hem paydada oldugu icin sadelesir — dusuk hacimli sembollerde
+  de ayni duzeltme gereklidir, "sorun kuculur" varsayimi yanlistir.
+
+TESHIS — ILK KOSUDA KONTROL ET:
+  1) Short islem sayisi 0 mi? -> W bos VE kod bozuk demektir (WP guard'i
+     bunu engellemeli; olursa haber ver)
+  2) Kapi hic kesmiyor mu? -> islem sayisi kapisiz referansla ayni cikarsa
+     LFIL/SFIL baglanmamis demektir
+  3) Indicator Builder'da "If(LFIL,1,0)" ciz -> 0/1 arasinda gidip gelmeli.
+     Surekli 1 ise kesmiyor, surekli 0 ise girisleri tamamen kapatmis.
+  4) vwap ciz -> fiyata sarilmali ve HER GUN BASINDA sicrayip yeniden
+     baslamali. Duz cizgiyse gun donumu calismiyor.
+
+BILINEN, ZARARSIZ:
+  - Kutu 1 ve 3 GSAY>=2 bekler, kutu 2 ve 4 beklemez. Ilk gunlerde cikislar
+    canli, girisler degil. Kapatilacak pozisyon olmadigi icin zararsiz;
+    yalnizca sinyal sayiminda gorunur.
+  - barNo>=6 guard'i ARTIK BAGLAYICI. TF 585 (09:45) olunca, seans 09:30'da
+    basladigi icin 6. bar 09:55'e denk gelir; 09:45 ve 09:50 barlari barNo
+    tarafindan elenir. Yani efektif ilk giris 09:55, TF'nin dedigi 09:45
+    degil. TF'yi 585 yapmanin kazandirdigi 2 bar barNo tarafindan yeniyor.
+    Gercekten 09:45'ten baslasin isteniyorsa barNo>=6 -> barNo>=4 yapilmali
+    (kullanici onayi gerekir, henuz yapilmadi).
+  - sap hesaplaniyor ama hicbir kosula girmiyor. Bant varyantina kadar
+    olu yuk. Kaldirilmasi istenirse VARY ve sap satirlari silinebilir.
+
+SEANS SONU DUZ KAPAMA — UYGULANDI (T>=1080 = 18:00):
+  Cikis kutularinda "OR T>=1080". Gecelik tasima kesilir, BT canli protokole
+  yaklasir. "AND TF" YASAGIYLA CAKISMAZ: yasak cikisi KISITLAMAYI yasaklar
+  (pozisyon seans disinda mahsur kalmasin diye), buradaki OR cikisi
+  GENISLETIR — ters yon.
+  Not: kapama 18:00 barinda tetiklenir, CCCC ile fill o barin kapanisi
+  (18:05). Canli protokoldeki 17:30-18:00 manuel penceresinden ~5-35 dk
+  sonra. Birebir ortusmesi istenirse esik 1050 (17:30) veya 1065 (17:45).
+
+UYGULANMADI — SIRADAKI ADAYLAR (kapisiz kiyas bitmeden HICBIRINI ACMA):
+  1) Bant mesafesi. YON NETLESTIRILMELI, iki zit okuma var:
+        C>vwap AND C<vwap+OPT1*sap   -> VWAP ustunde ama asiri uzamamis
+                                        (ralli kovalamayi ENGELLER)
+        C>vwap+OPT1*sap              -> uzaklasmayi sart kosar
+                                        (ralli KOVALAR)
+     Gerekce "ralli kovalamayi engeller" ise birincisi secilmeli.
+  2) Z-skoru: Z:=(C-vwap)/MAX(sap,0.0001). Cok sembollu taramada mutlak TL
+     mesafesi kiyaslanamaz, Z tasinabilir kilar.
+  3) VWAP egimi: vwap>Ref(vwap,-1). C>vwap seviye testidir, egim yon testi
+     ekler. barNo>=6 guard'i gun sinirindaki sicramayi zaten gizler.
+  4) OPT1 bant/Z esigi optimize edilirken KAYDIRILMIS formda calistigindan
+     emin ol. Ham formda optimize edilirse float32 gurultusune fit eder ve
+     secilen parametre baska sembolde anlamsiz cikar.
+
+DORT KUTUNUN SON SATIRI — KOPYALARKEN KONTROL ET:
+  ALIS         Cross(C,ST) AND TF AND LFIL
+  SATIS        Cross(ST,C) OR T>=1080
+  ACIGA SATIS  Cross(ST,C) AND TF AND SFIL
+  POZ. KAPAMA  Cross(C,ST) OR T>=1080
+  ALIS ile POZ.KAPAMA ayni yonu, SATIS ile ACIGA SATIS ayni yonu paylasir.
 
 
-{ ==============================================================
-  KUTU 1 — ALIŞ (BUY)
-  ============================================================== }
+=========================================
+INCELEME NOTLARI — 2026-08-10
+=========================================
 
+A) KIYAS KOSUSU EKSIK TANIMLI — ILK KOSUDAN ONCE DUZELT
+   "Referans = kapisiz, ayni TF" yeterli degil. Iki gizli degisken daha var:
+
+   A1) SEANS SONU KAPAMA. Referansta "OR T>=1080" yoksa, olculen fark
+       VWAP kapisi + gecelik tasimanin kaldirilmasi olur. Iki etki
+       birbirine karisir. Referans cikis kutulari da "OR T>=1080"
+       icermeli.
+
+   A2) SOK GUARD'I. Test surumunde SOK = GSAY>=2 AND barNo>=6 AND DHAC>0.
+       Referansta SOK hic yoksa, referans ilk iki gunde ve her gunun
+       ilk 5 barinda islem alabilir; test surumu alamaz. Bu, kapinin
+       degil isinmanin etkisidir.
+
+   DOGRU REFERANS — yalnizca C>vwap kosulunu dusur, geri kalani birak:
+        LFIL := SOK;          { test surumunde: SOK AND C>vwap }
+        SFIL := SOK;          { test surumunde: SOK AND C<vwap }
+   Boylece TF, SOK ve seans sonu kapama iki kosuda ayni kalir ve fark
+   tam olarak VWAP yon kosulunu olcer.
+
+B) CAKISMA — 1070 ONERISI DOGRU, AMA ASIL SORU BASKA
+   TF ust siniri < kapama esigi olmasi gerektigi dogru; 1070 bunu saglar
+   (son giris 17:50 bari, kapanisi 17:55; kapama 18:00 barinda).
+   Ancak cakisma bir semptom. Asil soru: bir islemin gelismesi icin kac
+   bar gerekiyor?
+   17:50'de acilan pozisyon 18:00 barinda zorla kapanir — iki bar omur.
+   CCCC ile tur basina ~28 bp maliyet (2 x 4 bp komisyon + 2 x 10 bp kayma)
+   dusuldugunde bu neredeyse kesin zarardir.
+   ONERI: kapisiz referans kosusundan islem SURESI dagilimini cikar,
+   medyan sureyi bul, TF ust sinirini "kapama esigi - medyan sure" yap.
+   Olcmeden 1070 yazmak cakismayi cozer ama maliyetli son-dakika
+   girislerini cozmez.
+
+C) TF PENCERE BOLUNMESI ARTIK ISLEVSIZ — VE 1dk'DA TUZAK
+   (T>=585 AND T<=745) OR (T>=750 AND T<=1085)
+   5dk barlari 5'in katlarinda oldugu icin 746-749 araliginda hicbir bar
+   yok. Ifade 5dk'da "T>=585 AND T<=1085" ile BIREBIR AYNI.
+   Bolunmus hali zararsiz ama 1dk grafige kopyalanirsa 12:26-12:29
+   barlarini sessizce eler. Ya tek pencereye indirin ya da bolunmenin
+   neden durdugunu yaninda yazin.
+
+D) T>=1080 HER GUN KOSULSUZ TETIKLENIR
+   Cikis kutulari 18:00 ve 18:05 barlarinda fiyattan bagimsiz olarak
+   TRUE doner. Pozisyon yoksa no-op olmali; ilk kosuda islem listesinde
+   18:00/18:05'te hayalet islem olmadigini dogrulayin.
+
+E) CCCC MALIYET VARSAYIMI MUHAFAZAKAR — IYI
+   Tur basina ~28 bp, VIOP icin gercekci-ustu. Yanlis pozitif uretme
+   riskini dusurur. Kapi bu maliyetin altinda deger uretiyorsa gercekten
+   uretiyordur.
+
+
+=========================================
+ALIS (BUY)
+=========================================
 a:=Ref(Abs(RMI(C,20,5)-50),-1);
 coeff:=1.5+0.5*(1-a/50);
 AP:=14;
@@ -30,7 +200,7 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=615 AND T<=745) OR (T>=750 AND T<=900) OR (T>=915 AND T<=1090);
+TF:=(T>=585 AND T<=745) OR (T>=750 AND T<=1085);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -50,31 +220,9 @@ SOK:=GSAY>=2 AND barNo>=6 AND DHAC>0;
 LFIL:=SOK AND C>vwap;
 Cross(C,ST) AND TF AND LFIL
 
-
-{ ==============================================================
-  KUTU 2 — SATIŞ (SELL)  |  long pozisyonu kapatır
-  Çıkış kutusudur: TF ve VWAP kapısı BİLEREK yoktur.
-  Zamana veya VWAP tarafına bağlanırsa pozisyon mahsur kalır.
-  ============================================================== }
-
-a:=Ref(Abs(RMI(C,20,5)-50),-1);
-coeff:=1.5+0.5*(1-a/50);
-AP:=14;
-hl2:=(H+L)/2;
-atrv:=ATR(AP);
-upBnd:=hl2-coeff*atrv;
-dnBnd:=hl2+coeff*atrv;
-fUp:=If(upBnd>PREV OR Ref(C,-1)<PREV,upBnd,PREV);
-fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
-dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
-ST:=If(dir>0,fUp,fDn);
-Cross(ST,C)
-
-
-{ ==============================================================
-  KUTU 3 — AÇIĞA SATIŞ (SHORT)
-  ============================================================== }
-
+=========================================
+SATIS (SELL)
+=========================================
 a:=Ref(Abs(RMI(C,20,5)-50),-1);
 coeff:=1.5+0.5*(1-a/50);
 AP:=14;
@@ -87,7 +235,24 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=615 AND T<=745) OR (T>=750 AND T<=900) OR (T>=915 AND T<=1090);
+Cross(ST,C) OR T>=1080
+
+=========================================
+ACIGA SATIS (SHORT)
+=========================================
+a:=Ref(Abs(RMI(C,20,5)-50),-1);
+coeff:=1.5+0.5*(1-a/50);
+AP:=14;
+hl2:=(H+L)/2;
+atrv:=ATR(AP);
+upBnd:=hl2-coeff*atrv;
+dnBnd:=hl2+coeff*atrv;
+fUp:=If(upBnd>PREV OR Ref(C,-1)<PREV,upBnd,PREV);
+fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
+dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
+ST:=If(dir>0,fUp,fDn);
+T:=HOUR()*60+MINUTE();
+TF:=(T>=585 AND T<=745) OR (T>=750 AND T<=1085);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -107,20 +272,9 @@ SOK:=GSAY>=2 AND barNo>=6 AND DHAC>0;
 SFIL:=SOK AND C<vwap;
 Cross(ST,C) AND TF AND SFIL
 
-
-{ ==============================================================
-  KUTU 4 — POZ. KAPAMA (COVER)  |  short pozisyonu kapatır
-  DÜZELTİLDİ: son satır Cross(C,ST)'dir, Cross(ST,C) DEĞİL.
-
-  Yanlış hâli (Cross(ST,C)) iki ayrı arıza üretiyordu:
-    1) Kapama, short'u AÇAN olaya bağlanıyordu — short açıldığı
-       barda kapama sinyali de doğuyordu.
-    2) Gerçek çıkış (fiyatın ST üstüne çıkması) hiç kapama
-       tetiklemiyordu; short ralli boyunca açık kalıyordu.
-
-  Çıkış kutusudur: TF ve VWAP kapısı BİLEREK yoktur.
-  ============================================================== }
-
+=========================================
+POZ. KAPAMA (COVER)
+=========================================
 a:=Ref(Abs(RMI(C,20,5)-50),-1);
 coeff:=1.5+0.5*(1-a/50);
 AP:=14;
@@ -132,89 +286,13 @@ fUp:=If(upBnd>PREV OR Ref(C,-1)<PREV,upBnd,PREV);
 fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
-Cross(C,ST)
+T:=HOUR()*60+MINUTE();
+Cross(C,ST) OR T>=1080
 
 
-{ ==============================================================
-  NOTLAR
-
-  TF ÜST SINIRI (1090)
-      Çalışan dosyadaki değer, bilerek korundu. 5dk'da 18:10
-      barını içeri alır; o bar 18:15'te, seans bitişinde kapanır.
-      Elemek isterseniz 1085 yapın.
-      Genel kural:  üst sınır = 1095 - 2 x periyot
-      5dk -> 1085,  15dk -> 1065.  Tek sabit iki periyoda hizmet
-      etmez; 1085'i 15dk dosyasına kopyalamak hiçbir şey yapmaz.
-
-  TF PENCERE BOŞLUKLARI
-      12:26-12:29 : 5dk bar sınırına denk gelmez, etkisiz.
-      15:01-15:14 : 15:05 ve 15:10 barlarını eler. Kasıtlıysa
-                    sorun yok; değilse 10 dakikalık kör nokta.
-
-  ISINMA ASİMETRİSİ
-      Kutu 1 ve 3 GSAY>=2 bekler, kutu 2 ve 4 yalnızca Cum(1)>14.
-      İlk günde çıkışlar canlı, girişler değil. Kapatılacak
-      pozisyon olmadığı için zararsız; sadece sinyal sayımında
-      görünür.
-
-  AKŞAM SEANSI (VİOP)
-      Grafiğe 19:00-23:00 seansı dahilse YGUN gece yarısında
-      tetiklenir, seans sınırında değil. O durumda gün başı
-      birikimi yanlış yerden alınır ve VWAP sessizce bozulur.
-      Yalnızca gündüz seansı yükleniyorsa sorun yok.
-
-  DURUM
-      Söz dizimi Prime kılavuzuna göre teyitli.
-      Varyans hesabı X30YVADE 5dk / 7.516 bar üzerinde ölçüldü.
-      Sistem uçtan uca Prime'da ÇALIŞTIRILARAK test EDİLMEDİ.
-  ============================================================== }
-
-
-{ ==============================================================
-  ÖNERİLEN EKLEMELER — HİÇBİRİ UYGULANMADI
-  Aşağıdakiler mevcut dört kutuya dahil DEĞİLDİR. Kapısız
-  referansla karşılaştırma bittikten sonra tek tek denenmeli.
-  ==============================================================
-
-  1) SEANS SONU DÜZ KAPAMA  (en önemli eksik)
-     Şu an pozisyon 18:10'da açılıp gece taşınabiliyor. VİOP'ta
-     gap riski demek. Çıkış kutularına (2 ve 4) OR ile eklenir:
-
-        SSON := T >= 1085;
-        ... Cross(ST,C) OR SSON        { kutu 2 }
-        ... Cross(C,ST) OR SSON        { kutu 4 }
-
-     T tanımı çıkış kutularında yok, eklemek gerekir:
-        T := HOUR()*60+MINUTE();
-
-  2) BANT MESAFESİ FİLTRESİ
-     sap zaten hesaplanıyor ama hiçbir yerde kullanılmıyor.
-     Girişi uçtan uzak tutar, ralliyi kovalamayı engeller:
-
-        LFIL := SOK AND C>vwap AND C < vwap + 2*sap;
-        SFIL := SOK AND C<vwap AND C > vwap - 2*sap;
-
-     Eşiği optimize edecekseniz KAYDIRILMIŞ formda yapın; ham
-     formda float32 gürültüsüne fit eder ve başka sembolde
-     anlamsız çıkar.
-
-  3) Z-SKORU — çok sembollü taramada eşik taşınabilirliği
-     Mutlak TL mesafesi semboller arasında kıyaslanamaz:
-
-        Z := If(sap>0, (C-vwap)/sap, 0);
-        LFIL := SOK AND Z>0 AND Z<2;
-
-  4) VWAP EĞİMİ TEYİDİ
-     Seviye testine yön testi ekler:
-
-        VYUK := vwap > Ref(vwap,-1);
-        LFIL := SOK AND C>vwap AND VYUK;
-
-     barNo>=6 guard'ı sayesinde Ref(vwap,-1) hep aynı gün
-     içinde kalır; gün sınırındaki sıçramayı görmez.
-
-  5) DENENMEMESİ ÖNERİLEN
-     VWAP tabanlı acil çıkış (ör. C < vwap-2*sap ile long kapat).
-     Çıkış koşulu eklemek whipsaw'ı artırır ve ST'nin trailing
-     stop işlevini bozar. Önce 1 ve 2'yi ölçün.
-  ============================================================== }
+=========================================
+KIYAS REFERANSI — BUY/SHORT icin LFIL/SFIL satirini degistir
+Diger her sey (TF, SOK, seans sonu kapama, CCCC) AYNI kalir.
+=========================================
+LFIL:=SOK;          { BUY  referansi  — test: SOK AND C>vwap }
+SFIL:=SOK;          { SHORT referansi — test: SOK AND C<vwap }
