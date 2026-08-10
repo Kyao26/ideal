@@ -2,7 +2,7 @@ ST_ADP_RMI_VWAP_v1
 ==================
 ST_ADP_RMI (ATR omurga) + gunluk VWAP yon kapisi
 Hedef enstruman: X30YVADE 5dk
-Tarih: 2026-08-04
+Tarih: 2026-08-04   (rev3: 2026-08-10, TF ust siniri 1045'ten 1075'e GERI ALINDI)
 
 TASARIM NOTU — NE DEGISTI, NE DEGISMEDI:
   DEGISMEDI: ST omurgasi (hl2, atrv, fUp, fDn, dir, ST), AP=14, RMI(C,20,5),
@@ -18,39 +18,97 @@ TASARIM NOTU — NE DEGISTI, NE DEGISMEDI:
              basliyordu; 15:05 ve 15:10 barlari 51 gunun 50'sinde MEVCUT
              oldugu halde disarida kaliyordu (gunde 2 bar kor nokta,
              gunduz seansinin %1.3'u). Ikinci ve ucuncu pencere birlestirildi.
-             Ust sinir 1090 -> 1045 (asagidaki olcum bolumune bak).
+             Ust sinir 1090 -> 1075 (asagidaki olcum bolumune bak).
              ALT SINIR 615 -> 585 (09:45), kullanici karari 2026-08-04.
-             Sonuc: TF:=(T>=585 AND T<=1045);  tek pencere.
+             Sonuc: TF:=(T>=585 AND T<=1075);  tek pencere.
   SEANS SONU KAPAMA EKLENDI: cikis kutularina "OR T>=1080" (18:00).
              Kullanici karari 2026-08-04. Canli protokolle (her aksam
              17:30-18:00 manuel kapatma) uyumlu hale getirir.
 
-TF UST SINIRI 1045 (17:25) — OLCUME DAYALI, 2026-08-04:
-  Once cakisma vardi: TF ust 1085, kapama esigi 1080 -> T=1080 ve T=1085
-  barlarinda hem giris hem cikis sinyali uretiliyordu (Matriks'in davranisi
-  belirsiz). Ust sinir kapama esiginin ALTINDA olmali.
-  Esik "1080 - medyan tutus" kuraliyla degil, OLCUMLE secildi. Kapisiz
-  omurga, X30YVADE 5dk, 24.04-10.07.2026, 279 islem, giris saatine gore:
-      09:45-11:40   N=80   16.8 p   medyan tutus 14 bar
-      11:40-13:40   N=47    7.1 p                15 bar
-      13:40-15:40   N=78    4.6 p                12 bar
-      15:40-16:45   N=29   -2.9 p                14 bar
-      16:45-17:25   N=28  +34.1 p                10 bar   <- TEK GECEN KOVA
-      17:25-18:05   N=17    4.5 p                 5 bar   <- tutus budanmis
-  Tutus dagilimi: medyan 15 bar (75 dk) kapamasiz, 12 bar kapamali.
-  279 islemin 51'i (%18) 18:00'da zorla kapaniyor.
-  "1080 - 75 dk = 1005 (16:45)" kurali TEK GECEN KOVAYI keserdi. Gec
-  girislerin sistematik negatif oldugu hipotezi bu veride TUTMADI; en zayif
-  dilim ortada (15:40-16:45, -2.9 p). Tutus budanmasi yalnizca son kovada
-  gorunuyor. 1045 uc sorunu birden cozer: cakisma biter, budanan kova
-  cikar, en iyi kova kalir.
-  UYARI: tablonun tamami 10.7 p/islem ortalamayla SURTUNMENIN (30.4)
-  ALTINDA. Kapisiz omurga bu pencerede surtunmeyi zaten asmiyor — kovalar
-  arasi fark gercek, mutlak seviye degil. Tek pencere, N=28'lik kova kucuk,
-  coeff (1.5,0.5) gurultulu ayar. Bu esik yeni veriyle tazelenmeli.
+
+!!!!! ONCE BUNU OKU — OMURGA SURTUNMEYI ASMIYOR !!!!!
+  Kapisiz omurga, X30YVADE 5dk, 24.04-10.07.2026, 279 islem:
+      brut/islem = 10.7 p   sd = 116.6   SE = 7.0   %95 GA = [-3.0 , 24.4]
+      KAPI = 30.4 p (gercek surtunme 15.2 p x2)
+  Kapi guven araliginin DISINDA, ust sinirin da (24.4) ustunde. Yani
+  "gurultu yuzunden dusuk gorunuyor olabilir" savunmasi gecerli degil —
+  bu pencerede omurga kapiyi istatistiksel olarak da asmiyor.
+  (Bagimsiz kontrol: t = (10.7-30.4)/6.98 = -2.82, iki yonlu p ~ 0.005.)
+  VWAP kapisinin islem basi edimi 10.7 -> 30.4'e cikarmasi gerekir (~3 kat).
+  Bir YON filtresinden bu beklenmez. Kapili/kapisiz kiyasi yine de kosulmali
+  ama sonuc negatifse karar "TF esigi" degil, "bu omurga bu enstrumanda
+  calismiyor" olur.
+
+
+TF UST SINIRI 1075 (17:55) — SAF YAPISAL GEREKCE, 2026-08-04:
+  TEK GEREKCE: cakisma cozumu. TF ust siniri kapama esiginin (1080) ALTINDA
+  olmali; yoksa T=1080 ve T=1085 barlarinda hem giris hem cikis sinyali
+  uretilir ve Matriks'in davranisi belirsizdir. 1075 bunu saglar,
+  BASKA HICBIR SEY VARSAYMAZ. P&L iddiasi YOKTUR.
+  Once 1045 secilmisti, GERI ALINDI. Sebep: esik, giris saatine gore
+  brut/islem tablosuna BAKTIKTAN SONRA en iyi kovayi icerde tutacak sekilde
+  secilmisti — ayni veriye bakip ayni veriyle secim, in-sample bahis.
+  Olcum bunu curuttu:
+      pencere        N    ort      sd     SE      %95 GA          t
+      09:45-11:40   80   16.8   118.7   13.3   [ -9.2 ,  42.8]   1.26
+      11:40-13:40   47    7.1   105.0   15.3   [-23.0 ,  37.1]   0.46
+      13:40-15:40   78    4.6    83.4    9.4   [-13.9 ,  23.1]   0.48
+      15:40-16:45   29   -2.9    79.4   14.7   [-31.8 ,  26.0]  -0.20
+      16:45-17:25   28   34.1   228.1   43.1   [-50.4 , 118.6]   0.79
+      17:25-18:05   17    4.5    30.1    7.3   [ -9.8 ,  18.8]   0.61
+  HICBIR KOVA SIFIRDAN AYIRT EDILEMIYOR (en yuksek |t| = 1.26). "En iyi
+  kova" olan 16:45-17:25'in sd'si 228, GA'si [-50 , +119] — gurultu.
+  Ayrica gerekce tutarsizdi: 1045 pozitif bir kovayi (17:25-18:05, +4.5 p)
+  keserken negatif olani (15:40-16:45, -2.9 p) iceride birakiyordu. Olcut
+  saf P&L olsaydi once ortadaki kesilirdi.
+  Esik adaylarinin P&L farki zaten olcusuz:
+      TF<=1005  N=239  8.6 p    TF<=1045  N=263  11.2 p
+      TF<=1075  N=277 10.8 p    TF<=1085  N=279  10.7 p
+  sd 116 iken 10.8 ile 11.2 arasindaki fark olculebilir degil.
+  Tutus dagilimi (bilgi icin): medyan 15 bar (75 dk) kapamasiz, 12 bar
+  kapamali; 279 islemin 51'i (%18) 18:00'da zorla kapaniyor. Son kovada
+  medyan tutus 5 bara budanmis — mekanik bir bozulma, ama 1075 bu kovayi
+  yine de iceride birakir (yalnizca 2 islem keser). Budanmayi tamamen
+  onlemek istenirse 1005 gerekir; o da en yuksek ortalamali kovayi keser.
+  OOS teyidi gelmeden 1075 en dayanikli secim.
   TF TEK PENCEREYE INDIRILDI: eski (T>=750 AND ...) bolunmesi 5dk'da
   islevsizdi (746-749'da hicbir bar yok). 1dk grafige kopyalanirsa
   12:26-12:29 barlarini sessizce elerdi. Tek pencere niyeti gorunur kilar.
+
+
+BAGIMSIZ DOGRULAMA — 2026-08-10:
+  Tablonun tum aritmetigi yeniden hesaplandi ve TUTUYOR. Kova sd'lerinden
+  geri turetilen genel sd 116.6 cikiyor; dosyadaki degerle birebir ayni.
+  Agirlikli ortalama 10.69 p.
+
+  EK BULGU 1 — TABLO GURULTUDEN BILE SESSIZ.
+  Alti kova ve sifir sinyal varsayimi altinda, en buyuk |t| degerinin
+  beklenen dagilimi (20.000 simulasyon):
+      medyan 1.60   %90 2.38   %95 2.62
+  Gozlenen en buyuk |t| = 1.27, yani saf gurultunun tipik olarak
+  uretecegi maksimumun ALTINDA. Tabloda "en iyi kova" diye bir sey yok;
+  veri hicbir saatte sinyal icermiyor. 1045'i geri almak dogru karardi.
+
+  EK BULGU 2 — 16:45-17:25 KOVASI 1-2 ISLEMDEN IBARET.
+  O kovanin sd'si 228.1; diger bes kova 30-119 bandinda. N=28'de bu
+  dagilim genisligi, ortalamanin bir veya iki asiri islemden geldigini
+  gosterir. Ortalamayi komsulariyla ayni seviyeye (~5 p) indirmek icin
+  toplam ~800 p'lik tek bir islemi cikarmak yeterli olurdu.
+
+  EK BULGU 3 — KIYAS KOSUSUNUN GUCU TAM KARARINDA. (en onemli)
+  Kapi islemlerin ~%50'sini keserse iki yari n=139 olur:
+      SE(fark) = 116.6 x sqrt(2/139) = 14.0 p
+      %80 guc icin saptanabilir en kucuk fark = 2.8 x 14.0 = 39.2 p
+  Kapinin 10.7'yi 30.4'e cikarmasi icin gereken fark:
+      2 x (30.4 - 10.7) = 39.4 p
+  IKISI NEREDEYSE AYNI. Yani test tam olarak karar esiginde kalibre:
+    - Kapi ise yarayacak kadar guclu ise, kiyas kosusunda ISTATISTIKSEL
+      OLARAK GORUNUR.
+    - Gorunmuyorsa, etki zaten surtunmeyi asmaya yetmeyecek kadar kucuk
+      demektir.
+  Sonuc: kiyas kosusu kosmaya DEGER ve tek basina karar verdirir.
+  Ara bir "belki vardir" bolgesi yok.
+
 
 OPT: YOK. Tek kosu. VWAP kapisi parametresiz, coeff sabit.
      Optimizasyon ayari kapatilabilir.
@@ -161,71 +219,6 @@ DORT KUTUNUN SON SATIRI — KOPYALARKEN KONTROL ET:
 
 
 =========================================
-INCELEME — v2, 2026-08-10
-=========================================
-
-A) ASIL BULGU: OMURGA SURTUNMEYI ASMIYOR — TF BUNU COZMEZ
-   Tablonun agirlikli ortalamasi tam olarak 10.69 p/islem (279 islem).
-   Surtunme 30.4 p. Yani kapisiz omurga bu pencerede islem basina
-   -19.7 p. Alti kovadan yalnizca biri esigi asiyor.
-   Bu, TF esigi tartismasindan buyuk bir sorundur. VWAP kapisinin isi
-   islem basi edimi ~3 KAT artirmak olur; bir yon filtresinden bu
-   beklenmez.
-   ONCELIK: TF'yi bir daha oynatmadan once kapili/kapisiz kiyasi kos.
-   Kapi 30.4'e yaklasmiyorsa 1045 mi 1075 mi sorusu onemsizdir ve
-   asil karar "bu omurga bu enstrumanda calismiyor" olur.
-
-B) 1045 SECIMI IN-SAMPLE BIR BAHIS
-   Esik, alti kovadan en iyisini (16:45-17:25, +34.1 p, N=28) iceride
-   tutacak sekilde, VERIYE BAKTIKTAN SONRA secildi. Bu tanimi geregi
-   in-sample optimizasyondur.
-   N=28'de guven araligi cok genis. Islem basi P&L standart sapmasi s
-   iken standart hata s/5.29:
-        s= 60 p -> SH 11.3 -> %95 GA [11.9, 56.3]
-        s= 80 p -> SH 15.1 -> %95 GA [ 4.5, 63.7]
-        s=100 p -> SH 18.9 -> %95 GA [-2.9, 71.1]
-        s=120 p -> SH 22.7 -> %95 GA [-10.3, 78.5]
-   ~14 barlik tutuslarda s'nin 80-120 p bandinda olmasi beklenir; o
-   durumda kova SIFIRDAN BILE ayirt edilemez.
-   YAPILACAK: o kovanin islem basi standart sapmasini raporla. SH,
-   34.1'in yarisindan buyukse esik gurultuye fit edilmis demektir.
-
-C) KESME GEREKCESI P&L DEGIL, YAPISAL — BOYLE YAZ
-   1045, POZITIF bir kovayi (17:25-18:05, +4.5 p) keserken NEGATIF bir
-   kovayi (15:40-16:45, -2.9 p) iceride birakiyor. Olcut saf P&L olsaydi
-   once ortadaki kova kesilirdi.
-   Savunulabilir gerekce P&L degil YAPISAL: son kovada medyan tutus
-   5 bara budanmis (digerlerinde 12-15). Bu mekanik bir bozulma, gurultu
-   degil. Dokumanda gerekce boyle durmali; "en kotu kovayi kestik"
-   ifadesi veriyle celisir.
-
-D) UC ADAY, UCU DE SAVUNULABILIR — FARKLI BAHISLER
-   1075  yalnizca cakismayi cozer, baska hicbir sey varsaymaz.
-         EN AZ in-sample bahis iceren secim.
-   1045  en iyi kovayi korur + budanan kovayi keser. Su anki secim.
-         16:45-17:25 kovasinin gercek oldugu bahsini iceriyor.
-   1005  tutus budanmasini tamamen onler (medyan 75 dk once giris).
-         En iyi kovayi keser.
-   Out-of-sample teyit gelene kadar 1075 en dayanikli olanidir. 1045'te
-   kalmak mesru, ama bahsin farkinda olarak.
-
-E) N BEKLENTISI TUTARSIZ
-   Kapisiz kosu 2.5 ayda 279 islem uretti. Degerlendirme olcutundeki
-   "<=60 / 2.5 ay" bandi kapinin islemlerin %78'ini kesmesini varsayiyor.
-   Bir yon filtresi tipik olarak ~%50 keser -> ~140 islem beklenir.
-   Ya band gozden gecirilmeli ya da %78 beklentisinin gerekcesi yazilmali.
-   Ters risk: kapi gercekten cok keserse taraf basina N<30'a duser ve
-   kendi kuralinizca istatistik disi olur.
-
-F) DEGERLENDIRME OLCUTLERI IYI — BIRI EKSIK
-   Mevcut dort olcut (brut artisi, elenenlerin kalitesi, en iyi 5 islem
-   cikarilinca, N bandi) saglam. Eklenmesi gereken:
-   5) LONG ve SHORT ayri raporlansin. Kapi iki tarafa simetrik uygulaniyor
-      ama X30YVADE'de yon asimetrisi olabilir; toplamda notr gorunen bir
-      kapi bir tarafta iyi bir tarafta kotu olabilir.
-
-
-=========================================
 ALIS (BUY)
 =========================================
 a:=Ref(Abs(RMI(C,20,5)-50),-1);
@@ -240,7 +233,7 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=585 AND T<=1045);
+TF:=(T>=585 AND T<=1075);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -292,7 +285,7 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=585 AND T<=1045);
+TF:=(T>=585 AND T<=1075);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -349,10 +342,22 @@ diger her sey (TF, SOK, seans sonu kapama, coeff, omurga) AYNEN kalir.
 Iki kosunun farki tam olarak VWAP yon kosulunu olcer.
 
 DEGERLENDIRME:
-  1) Brut/islem artti mi? (surtunme 30.4 p)
-  2) ELENEN islemlerin brut/islem'i kalanlarin ALTINDA mi? Ustundeyse
-     kapi iyi islemleri eliyor demektir.
+  1) Brut/islem artti mi? (kapi 30.4 p). Referans 10.7 p — kapinin bunu
+     ~3 kata cikarmasi gerekiyor. Gerceklesmezse omurga kararina gecilir.
+  2) ELENEN islemlerin brut/islem'i kalanlarin ALTINDA mi? Ustundeyse kapi
+     iyi islemleri eliyor demektir.
   3) En iyi 5 islem cikarilinca NET hala pozitif mi?
-  4) Islem sayisi bandi. N<30 istatistik disidir.
-  5) LONG ve SHORT AYRI raporlansin. Toplamda notr gorunen bir kapi bir
-     tarafta iyi bir tarafta kotu olabilir.
+  4) LONG VE SHORT AYRI RAPORLANSIN. Kapi iki tarafa simetrik uygulaniyor
+     ama toplamda notr gorunen bir kapi bir tarafta iyi bir tarafta kotu
+     olabilir. Taraf basina brut/islem, N ve PF ayri yazilsin.
+  5) Fark istatistiksel mi? Referansta islem basi sd ~117 p. Iki ortalama
+     arasindaki farkin SE'si hesaplanmadan "kapi calisiyor" denmez.
+     Kapi %50 keserse SE(fark) ~ 14.0 p; "calisiyor" demek icin gozlenen
+     farkin ~28 p'yi (2 SE) asmasi gerekir.
+
+ISLEM SAYISI BEKLENTISI — DIKKAT:
+  Kapisiz omurga bu pencerede 279 islem uretti (2.5 ay). "<=60 islem"
+  hedefi kapinin islemlerin %78'ini kesmesini varsayar. Bir YON filtresi
+  tipik olarak ~%50 keser -> ~140 islem beklenir; hedefin cok uzagi.
+  TERS RISK: kapi gercekten cok keserse TARAF BASINA N<30'a duser ve
+  kendi kuralinla istatistik disi olur. Iki ucu da ilk kosuda kontrol et.

@@ -65,7 +65,7 @@ Hedef enstrüman **X30YVADE 5dk**. Ölçümler bu veri üzerinde yapıldı.
 **Açık durum (2026-08-10):** Kapısız omurga, 24.04–10.07.2026 / 279 işlemde
 işlem başına **10,7 p brüt** üretiyor; sürtünme **30,4 p**. Yani omurga bu
 pencerede net negatif. VWAP kapısının kapılı/kapısız kıyası **henüz
-koşulmadı** — sıradaki iş bu. TF üst sınırı (şu an 1045) bu kıyas
+koşulmadı** — sıradaki iş bu. TF üst sınırı (şu an 1075) bu kıyas
 bitmeden yeniden oynatılmamalı.
 
 ### Pahalıya öğrenilen kurallar — bozmayın
