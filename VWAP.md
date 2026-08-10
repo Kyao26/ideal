@@ -154,6 +154,8 @@ f := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
 CROSS(C, (CUM(W*V) - d) / (CUM(V) - f))
 ```
 
+Bantlı ve gürültü korumalı tam filtre, alternatif tarama koşullarıyla birlikte [`VWAP_Filtre.txt`](VWAP_Filtre.txt) dosyasında — doğrudan Explorer'a yapıştırılabilir.
+
 Seans VWAP'ının yanında sık kullanılan diğer seviyeler: önceki günün VWAP'ı, haftalık ve aylık VWAP.
 
 ## Tuzaklar ve Yanlış Anlamalar

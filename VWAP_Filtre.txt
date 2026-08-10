@@ -1,0 +1,112 @@
+{ ==============================================================
+  VWAP FİLTRESİ — Matriks Prime (Explorer / Tarama)
+  Seans VWAP'ı + hacim ağırlıklı standart sapma bantları.
+  Tipik fiyat olarak W (AOF) kullanılır, (H+L+C)/3 değil.
+
+  KULLANIM: Gün içi periyotta çalıştırın (1dk/5dk/15dk...).
+            Günlük periyotta her bar yeni gündür, seans reset'i
+            anlamsızlaşır ve VWAP W'ye çöker.
+
+  DURUM:    Bu formül Matriks Prime'da ÇALIŞTIRILARAK
+            DOĞRULANMADI. Aşağıdaki "TEYİT EDİLECEKLER"e bakın.
+  ============================================================== }
+
+
+{ ---------- 1) Gün dönümü tespiti ---------- }
+yeniGun := DAYOFMONTH() <> REF(DAYOFMONTH(), -1);
+
+
+{ ---------- 2) Gün başındaki birikimler ----------
+  CUM() grafiğin başından birikir ve seansta sıfırlanmaz.
+  Dünkü son bardaki birikimi saklayıp bugünkünden çıkarıyoruz. }
+d := VALUEWHEN(1., yeniGun, REF(CUM(W*V), -1));
+f := VALUEWHEN(1., yeniGun, REF(CUM(V), -1));
+g := VALUEWHEN(1., yeniGun, REF(CUM(W*W*V), -1));
+b := VALUEWHEN(1., yeniGun, REF(CUM(1), -1));
+
+
+{ ---------- 3) Seans VWAP'ı ----------
+  hac icin sifira bolme koruması konuldu. }
+hacHam := CUM(V) - f;
+hac    := IF(hacHam > 0, hacHam, 1);
+vwap   := (CUM(W*V) - d) / hac;
+
+
+{ ---------- 4) Hacim ağırlıklı varyans ve bantlar ----------
+  Var = E[x²] - (E[x])²  — kümülatif, hacim ağırlıklı.
+  Negatife düşmesi kayan nokta hatasıdır, kırpıyoruz. }
+varHam := (CUM(W*W*V) - g) / hac - vwap*vwap;
+sap    := SQRT(IF(varHam > 0, varHam, 0));
+
+ust1 := vwap + sap;
+alt1 := vwap - sap;
+ust2 := vwap + 2 * sap;
+alt2 := vwap - 2 * sap;
+
+
+{ ---------- 5) Erken seans gürültü filtresi ----------
+  Seansın ilk barlarında payda küçüktür, VWAP zıplar.
+  Günün kaçıncı barındayız: }
+barNo   := CUM(1) - b;
+seansOk := barNo >= 6 AND hacHam > 0;
+
+
+{ ---------- 6) FİLTRE ÇIKTISI ----------
+  Aktif koşul: fiyat seans VWAP'ını yukarı kesti. }
+seansOk AND CROSS(C, vwap)
+
+
+
+{ ==============================================================
+  ALTERNATİF SON SATIRLAR
+  Yukarıdaki 6. bölümün son satırını bunlardan biriyle değiştirin.
+  1-5. bölümler aynı kalır.
+  ==============================================================
+
+  { VWAP aşağı kesişimi — gün içi kontrol satıcılara geçti }
+  seansOk AND CROSS(vwap, C)
+
+  { Alt 2σ bandına sarkma — ortalamaya dönüş adayı (long) }
+  seansOk AND C <= alt2
+
+  { Üst 2σ bandı üstü — aşırı uzaklaşma (short / kar al bölgesi) }
+  seansOk AND C >= ust2
+
+  { Alt banda sarkıp geri dönüş — dönüş teyitli mean reversion }
+  seansOk AND REF(C, -1) < alt2 AND C > alt2
+
+  { Sağlıklı trend: VWAP üstünde ama henüz uca gitmemiş }
+  seansOk AND C > vwap AND C < ust2
+
+  { VWAP üstünde tutunma — son 3 bar boyunca üstte kaldı }
+  seansOk AND C > vwap AND REF(C,-1) > REF(vwap,-1) AND REF(C,-2) > REF(vwap,-2)
+
+  { Bantlar arası konum > %80 (üst uca yakın) }
+  seansOk AND (C - alt2) / (ust2 - alt2) > 0.8
+
+  ============================================================== }
+
+
+
+{ ==============================================================
+  TEYİT EDİLECEKLER (kurulumunuzda kontrol edin)
+  ==============================================================
+
+  1) VALUEWHEN(1., kosul, deger)
+     "1." parametresi kaçıncı oluşumu döndürüyor? Beklentimiz:
+     en son gerçekleşen oluşum. Yanlışsa gün reset'i kayar.
+
+  2) CUM(1) bar sayacı olarak çalışıyor mu?
+     barNo'nun günün ilk barında 1 olması beklenir.
+
+  3) SQRT() ve IF() isimleri doğru mu?
+     IF desteklenmiyorsa MAX(varHam, 0) deneyin.
+
+  4) Günlük olmayan periyotta ilk gün:
+     Grafiğin ilk gününde VALUEWHEN henüz bir oluşum bulamaz.
+     d/f/g boş dönerse ilk gün sonuçlarını dikkate almayın.
+
+  5) W (AOF) verisinin dolu geldiğini bir sembolde gözle doğrulayın.
+     Boş gelirse W yerine (H+L+C)/3'e düşmek gerekir.
+
+  ============================================================== }
