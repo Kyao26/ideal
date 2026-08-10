@@ -1,45 +1,69 @@
 { ==============================================================
   VWAP FİLTRESİ — Matriks Prime (Explorer / Tarama)
   Seans VWAP'ı + hacim ağırlıklı standart sapma bantları.
-  Tipik fiyat olarak W (AOF) kullanılır, (H+L+C)/3 değil.
 
-  KULLANIM: Gün içi periyotta çalıştırın (1dk/5dk/15dk...).
-            Günlük periyotta her bar yeni gündür, seans reset'i
-            anlamsızlaşır ve VWAP W'ye çöker.
+  DURUM
+    Söz dizimi   : Prime kullanım kılavuzuna göre teyitli.
+    Sayısal      : X30YVADE 5dk / 7.516 bar üzerinde ölçüldü,
+                   iki geçişli kesin hesapla karşılaştırıldı.
+    Çalıştırma   : Prime'da uçtan uca test EDİLMEDİ.
 
-  DURUM:    Söz dizimi Prime kılavuzuna göre doğrulandı
-            (fonksiyon adları, parametreler, operatörler).
-            Formül Prime'da ÇALIŞTIRILARAK test edilmedi.
+  KULLANIM
+    Gün içi periyotta çalıştırın (1dk/5dk/15dk...).
+    Günlük periyotta her bar yeni gündür, seans reset'i
+    anlamsızlaşır ve VWAP WP'ye çöker.
+
+  NEDEN KAYDIRMALI HESAP — bkz. dosya sonundaki ÖLÇÜM bölümü.
+  Ham E[x²]-E[x]² formu float32'de çöküyor. Kaydırma zorunlu.
   ============================================================== }
 
 
-{ ---------- 1) Gün dönümü tespiti ---------- }
-yeniGun := DAYOFMONTH() <> REF(DAYOFMONTH(), -1);
+{ ---------- 1) Tipik fiyat ----------
+  W = AOF, borsanın bar için yayımladığı gerçek hacim ağırlıklı
+  fiyat. Boş gelirse hlc3'e düşülüyor. }
+WP := If(W > 0, W, (H+L+C)/3);
 
 
-{ ---------- 2) Gün başındaki birikimler ----------
-  CUM() grafiğin başından birikir ve seansta sıfırlanmaz.
+{ ---------- 2) Gün dönümü ve gün sayacı ---------- }
+YGUN := DAYOFMONTH() <> Ref(DAYOFMONTH(), -1);
+GSAY := Cum(If(YGUN, 1, 0));
+
+
+{ ---------- 3) Gün başı referansı (kaydırma tabanı) ----------
+  Dünkü son kapanış. Gün İÇİNDE sabittir — kaydırma
+  algebrasının çalışmasının tek şartı budur. }
+KAY := ValueWhen(1, YGUN, Ref(C, -1));
+XD  := WP - KAY;
+
+
+{ ---------- 4) Gün başındaki birikimler ----------
+  CUM() grafiğin başından birikir, seansta sıfırlanmaz.
   Dünkü son bardaki birikimi saklayıp bugünkünden çıkarıyoruz.
-  VALUEWHEN'de N=1 en son (en yakın geçmiş) oluşumu verir. }
-d := VALUEWHEN(1, yeniGun, REF(CUM(W*V), -1));
-f := VALUEWHEN(1, yeniGun, REF(CUM(V), -1));
-g := VALUEWHEN(1, yeniGun, REF(CUM(W*W*V), -1));
-b := VALUEWHEN(1, yeniGun, REF(CUM(1), -1));
+  ValueWhen'de N=1 en son (en yakın geçmiş) oluşumu verir.
+
+  Cum tüm geçmişi toplarken her bar kendi gününün KAY'ını
+  kullanır; ama gün başındaki değer çıkarılınca geriye yalnızca
+  bu gün kalır ve bu gün içinde KAY sabittir. Telescoping temiz. }
+d := ValueWhen(1, YGUN, Ref(Cum(XD*V), -1));
+f := ValueWhen(1, YGUN, Ref(Cum(V), -1));
+g := ValueWhen(1, YGUN, Ref(Cum(XD*XD*V), -1));
+b := ValueWhen(1, YGUN, Ref(Cum(1), -1));
 
 
-{ ---------- 3) Seans VWAP'ı ----------
-  hac için sıfıra bölme koruması konuldu. }
-hacHam := CUM(V) - f;
-hac    := MAX(hacHam, 1);
-vwap   := (CUM(W*V) - d) / hac;
+{ ---------- 5) Seans VWAP'ı ----------
+  ORTX = vwap - KAY. Sonunda KAY geri ekleniyor, değer birebir
+  ham formülünkiyle aynı. }
+DHAC := Cum(V) - f;
+ORTX := If(DHAC > 0, (Cum(XD*V) - d) / DHAC, 0);
+vwap := If(DHAC > 0, KAY + ORTX, C);
 
 
-{ ---------- 4) Hacim ağırlıklı varyans ve bantlar ----------
-  Var = E[x²] - (E[x])²  — kümülatif, hacim ağırlıklı.
-  Negatife düşmesi kayan nokta hatasıdır, MAX ile kırpıyoruz.
-  Karekök fonksiyonu Sqr'dir; Prime'da SQRT yoktur. }
-varHam := (CUM(W*W*V) - g) / hac - vwap * vwap;
-sap    := Sqr(MAX(varHam, 0));
+{ ---------- 6) Hacim ağırlıklı varyans ve bantlar ----------
+  Varyans kaydırmaya duyarsızdır: Var(x-K) = Var(x).
+  Karekök Sqr()'dir; Prime'da SQRT yoktur.
+  MAX(VARY,0) kalan kayan nokta artığını kırpar. }
+VARY := If(DHAC > 0, (Cum(XD*XD*V) - g) / DHAC - ORTX*ORTX, 0);
+sap  := Sqr(MAX(VARY, 0));
 
 ust1 := vwap + sap;
 alt1 := vwap - sap;
@@ -47,92 +71,124 @@ ust2 := vwap + 2 * sap;
 alt2 := vwap - 2 * sap;
 
 
-{ ---------- 5) Erken seans gürültü filtresi ----------
-  Seansın ilk barlarında payda küçüktür, VWAP zıplar.
-  CUM(1) grafiğin başından her bar 1 ekler; gün başındaki
-  değeri çıkarınca günün kaçıncı barında olduğumuz kalır. }
-barNo   := CUM(1) - b;
-seansOk := barNo >= 6 AND hacHam > 0;
+{ ---------- 7) Seans geçerlilik guard'ı ----------
+  GSAY>=2 : ilk günü eler. Ref(DAYOFMONTH(),-1) grafiğin ilk
+            barında ne dönerse dönsün güvenli; ayrıca grafik
+            seans ortasından başlarsa kısmi ilk günü de eler.
+  barNo>=6: erken seansta payda küçüktür, VWAP zıplar. }
+barNo := Cum(1) - b;
+SOK   := GSAY >= 2 AND barNo >= 6 AND DHAC > 0;
 
 
-{ ---------- 6) FİLTRE ÇIKTISI ----------
-  Aktif koşul: fiyat seans VWAP'ını yukarı kesti. }
-seansOk AND CROSS(C, vwap)
+{ ---------- 8) Yön kapıları ---------- }
+LFIL := SOK AND C > vwap;
+SFIL := SOK AND C < vwap;
+
+
+{ ---------- 9) FİLTRE ÇIKTISI ----------
+  Tek başına VWAP taraması için aktif satır: }
+LFIL AND Cross(C, vwap)
+
+
+
+{ ==============================================================
+  SİSTEME BAĞLAMA
+  Kendi sisteminizin tetikleyicisiyle birlikte kullanırken
+  9. bölümün yerine:
+
+      AL         : Cross(C, ST) AND TF AND LFIL
+      Açığa Sat  : Cross(ST, C) AND TF AND SFIL
+      SAT / Poz. kapama : dokunulmuyor
+
+  ST ve TF bu dosyada TANIMLI DEĞİLDİR — kendi sisteminizden
+  gelir (ST: trend hattı, TF: zaman filtresi). LFIL/SFIL burada
+  yalnızca VWAP tarafındaki kapıyı üretir.
+  ============================================================== }
 
 
 
 { ==============================================================
   ALTERNATİF SON SATIRLAR
-  Yukarıdaki 6. bölümün son satırını bunlardan biriyle değiştirin.
-  1-5. bölümler aynı kalır.
+  9. bölümün son satırını bunlardan biriyle değiştirin.
+  1-8. bölümler aynı kalır.
   ==============================================================
 
-  { VWAP aşağı kesişimi — gün içi kontrol satıcılara geçti }
-  seansOk AND CROSS(vwap, C)
+  { VWAP aşağı kesişimi }
+  SFIL AND Cross(vwap, C)
 
   { Alt 2σ bandına sarkma — ortalamaya dönüş adayı (long) }
-  seansOk AND C <= alt2
+  SOK AND C <= alt2
 
-  { Üst 2σ bandı üstü — aşırı uzaklaşma (short / kar al bölgesi) }
-  seansOk AND C >= ust2
+  { Üst 2σ bandı üstü — aşırı uzaklaşma }
+  SOK AND C >= ust2
 
   { Alt banda sarkıp geri dönüş — dönüş teyitli mean reversion }
-  seansOk AND REF(C, -1) < alt2 AND C > alt2
+  SOK AND Ref(C,-1) < alt2 AND C > alt2
 
   { Sağlıklı trend: VWAP üstünde ama henüz uca gitmemiş }
-  seansOk AND C > vwap AND C < ust2
+  SOK AND C > vwap AND C < ust2
 
-  { VWAP üstünde tutunma — son 3 bar boyunca üstte kaldı }
-  seansOk AND C > vwap AND REF(C,-1) > REF(vwap,-1) AND REF(C,-2) > REF(vwap,-2)
+  { VWAP üstünde tutunma — son 3 bar }
+  SOK AND C > vwap AND Ref(C,-1) > Ref(vwap,-1) AND Ref(C,-2) > Ref(vwap,-2)
 
-  { Bantlar arası konum > %80 (üst uca yakın) }
-  seansOk AND (C - alt2) / (ust2 - alt2) > 0.8
+  { Bantlar arası konum > %80 }
+  SOK AND (C - alt2) / (ust2 - alt2) > 0.8
 
   ============================================================== }
 
 
 
 { ==============================================================
-  SÖZ DİZİMİ NOTLARI (kılavuzdan teyitli)
-  ==============================================================
+  ÖLÇÜM — neden kaydırmalı hesap
+  X30YVADE 5dk, 7.516 bar. Cum-farkı yöntemiyle hesaplanan sap,
+  iki geçişli kesin hesapla karşılaştırıldı.
 
-  VALUEWHEN(N, koşul, değer)
-      N=1 en son (en yakın geçmiş) oluşumu verir, en eskisini
-      değil. Parametre "1" olarak yazılır — "1." değil.
+    Kurgu                  Duyarlık   Ort hata   p95 hata     sap=0
+    ---------------------  ---------  ---------  -----------  ------
+    Ham (kaydırmasız)      float32    %85        %155-252     %17-21
+    Ham (kaydırmasız)      float64    %0,000     %0,000       %0
+    Gün başına kaydırılmış float32    %0,26      %0,28        %0
+    Gün başına kaydırılmış float64    %0,000     %0,000       %0
 
-  CUM(1)
-      Grafiğin başından itibaren her bar için 1 ekler.
-      Bar sayacı olarak kullanılır.
+  V=1 ve V=1741 sabit hacimle iki kez koşuldu, sonuç aynı:
+  belirleyici olan hacim büyüklüğü değil FİYAT büyüklüğü.
 
-  Sqr(Data)
-      Karekök. Prime'da SQRT DİYE BİR FONKSİYON YOKTUR.
-      Alternatif: Power(Data, 0.5)
+  Ham formülün çökme biçimi sinsidir: float32'de barların
+  beşte birinde VARY negatife düşer, MAX(VARY,0) bunu 0'a
+  kırpar, sap sıfırlanır, bantlar VWAP'a yapışır ve bant
+  koşulları hiç tetiklenmez — hata mesajı YOKTUR.
 
-  MAX(Data1, Data2)
-      İki değerden büyüğünü verir. If(x>0,x,0) yerine MAX(x,0)
-      aynı işi tek satırda yapar.
+  Prime'ın içeride hangi duyarlığı kullandığı bilinmiyor.
+  Kaydırma bu soruyu gereksiz kılıyor, maliyeti sıfır ve
+  sabit K gerektirmediği için çok sembollü taramada da sorunsuz.
 
-  AND / OR
-      Mantıksal operatörler. && ve || Prime'da yoktur.
-
-  W
-      Yerleşik veri serisi — barın ağırlıklı ortalaması (AOF).
-      Tanımlamaya gerek yoktur, periyoda göre gelir.
-
+  vwap neden ham formülde bile sağlamdı: birinci moment
+  oranında çıkarma hatası günün toplamına göre küçük kalır.
+  Varyansta ise SONUCUN KENDİSİ iki büyük sayının küçük farkı
+  olduğu için aynı mutlak hata sonucu yutar.
   ============================================================== }
 
 
+
 { ==============================================================
-  ÇALIŞTIRMADAN ÖNCE GÖZLE KONTROL
-  ==============================================================
+  KALAN RİSK VE TEŞHİS
 
-  1) Grafiğin ilk gününde VALUEWHEN henüz bir oluşum bulamaz;
-     d/f/g/b boş dönerse ilk gün sonuçlarını dikkate almayın.
+  1) float32'de kaydırılmış sürümde bile %0,26 artık hata var.
+     Mekanizma yok olmadı, 6.800 kat küçüldü. Biriken toplam
+     grafik uzadıkça büyümeye devam ederken günlük pencere
+     sabit kaldığı için hata bar sayısıyla ölçeklenir.
+     Çok daha uzun bir geçmiş yüklerseniz yeniden ölçün.
 
-  2) barNo'nun günün ilk barında 1 geldiğini bir sembolde
-     doğrulayın (gün reset'inin yerini kanıtlar).
+  2) Teşhis: MAX guard'ını geçici olarak kaldırıp ham VARY'yi
+     çizdirin. Kaydırılmış sürümde negatife SARKMAMALI.
+     Sarkıyorsa Prime içeride beklenmedik bir şey yapıyordur.
 
-  3) Taradığınız sembollerde W verisinin dolu geldiğini kontrol
-     edin. Boş gelirse (H+L+C)/3'e düşmek gerekir.
+  3) sap şu an filtre kapısına bağlı değil — mevcut kapı
+     yalnızca vwap kullanıyor. Bant varyantı (ör. C > vwap +
+     OPT1*sap) devreye alındığı gün bu düzeltme kritik hale
+     gelir; şimdi hazır.
 
+  4) Taranan sembollerde W verisinin dolu geldiğini gözle
+     doğrulayın. Boşsa WP zaten hlc3'e düşer ama VWAP'ın
+     anlamı zayıflar.
   ============================================================== }

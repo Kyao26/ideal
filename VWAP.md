@@ -65,19 +65,36 @@ Ders kitabı versiyonu. Aynı çıkarma hilesini kareler toplamına da uygulars�
 
 ```
 { VWAP + kümülatif hacim ağırlıklı stdev bandı }
-d  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
-f  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
-g  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*W*V), -1));
+WP   := If(W > 0, W, (H+L+C)/3);
+YGUN := DAYOFMONTH() <> Ref(DAYOFMONTH(), -1);
 
-vw := (CUM(W*V) - d) / (CUM(V) - f);
-vr := (CUM(W*W*V) - g) / (CUM(V) - f) - vw*vw;
+{ Gün başı referansı — kaydırma tabanı, gün içinde sabit }
+KAY := ValueWhen(1, YGUN, Ref(C, -1));
+XD  := WP - KAY;
 
-vw + 2 * Sqr(MAX(vr, 0))
+d := ValueWhen(1, YGUN, Ref(Cum(XD*V), -1));
+f := ValueWhen(1, YGUN, Ref(Cum(V), -1));
+g := ValueWhen(1, YGUN, Ref(Cum(XD*XD*V), -1));
+
+DHAC := Cum(V) - f;
+ORTX := If(DHAC > 0, (Cum(XD*V) - d) / DHAC, 0);
+vwap := If(DHAC > 0, KAY + ORTX, C);
+VARY := If(DHAC > 0, (Cum(XD*XD*V) - g) / DHAC - ORTX*ORTX, 0);
+
+vwap + 2 * Sqr(MAX(VARY, 0))
 ```
 
-Alt bant için son satırı `vw - 2*Sqr(MAX(vr,0))` yapın. `MAX(vr,0)` kayan nokta hatasından doğabilecek küçük negatif varyansa karşı korumadır.
+Alt bant için son satırı `vwap - 2*Sqr(MAX(VARY,0))` yapın.
 
-**Söz dizimi uyarısı:** Karekök fonksiyonu Prime'da `Sqr()`'dir — `SQRT()` diye bir fonksiyon **yoktur**. Alternatifi `Power(vr, 0.5)`.
+**Neden `XD = WP - KAY` üzerinden hesaplanıyor?** Doğrudan `E[x²] - E[x]²` yazmak matematiksel olarak doğrudur ama sayısal olarak çöker: sonuç, iki büyük ve birbirine çok yakın sayının küçük farkıdır. X30YVADE 5dk / 7.516 bar üzerinde ölçüldüğünde float32'de **ortalama %85 hata** ve barların **%17-21'inde `sap = 0`** çıkıyor. Gün başına kaydırınca hata %0,26'ya, sıfırlanma oranı %0'a düşüyor. Varyans kaydırmaya duyarsız olduğu için sonuç birebir aynı, sadece büyüklükler ~6.800 kat küçülüyor.
+
+Kaydırmanın algebrası şu yüzden bozulmaz: `Cum` tüm geçmişi toplarken her bar kendi gününün `KAY`'ını kullanır, ama gün başındaki değer çıkarılınca geriye yalnızca o gün kalır ve o gün içinde `KAY` sabittir.
+
+Çökmenin **hata mesajı yoktur**: `MAX(VARY,0)` guard'ı negatif varyansı 0'a kırpar, bantlar VWAP çizgisine yapışır ve bant koşulları hiç tetiklenmez.
+
+`vwap`'ın kendisi ham formülde bile sağlamdır — birinci moment oranında çıkarma hatası günün toplamına göre küçük kalır. Kırılgan olan yalnızca kareli terimdir.
+
+**Söz dizimi uyarısı:** Karekök fonksiyonu Prime'da `Sqr()`'dir — `SQRT()` diye bir fonksiyon **yoktur**. Alternatifi `Power(VARY, 0.5)`.
 
 **Okunuşu:** Bu gerçekten hacim ağırlıklı dağılımdır. Ama seans başından kümülatif olduğu için örneklem büyüdükçe her yeni barın etkisi azalır — **bandın tepkiselliği seans ilerledikçe söner**. Kapanışa yakın bandın hareketsizleşmesi bir volatilite sinyali değil, sadece paydanın büyümüş olmasıdır. Bollinger'ın squeeze okuması buraya **taşınmaz**.
 
@@ -215,9 +232,12 @@ Rolling VWAP = SUM(W*V, n) / SUM(V, n)
 | `AND` / `OR` | Mantıksal operatörler. **`&&` ve `||` yoktur.** |
 | `W` | Yerleşik veri serisi (AOF), periyoda göre gelir. |
 
+**Sayısal davranış** X30YVADE 5dk / 7.516 bar üzerinde ölçüldü (bkz. bant bölümü): ham `E[x²]-E[x]²` formu float32'de kullanılamaz, gün başına kaydırılmış form kullanılmalıdır.
+
 **Çalıştırma** ise yapılmadı — bu ortamda Prime yok. Kalan belirsizlikler:
 
-- Grafiğin ilk gününde `VALUEWHEN` henüz bir oluşum bulamaz; `d`/`f`/`g` boş dönerse ilk gün sonuçları güvenilmezdir.
+- Kaydırılmış formda bile float32'de %0,26 artık hata var. Mekanizma yok olmadı, küçüldü; biriken toplam grafik uzadıkça büyüdüğü için hata bar sayısıyla ölçeklenir. Çok daha uzun geçmişte yeniden ölçün.
+- İlk gün `ValueWhen` henüz bir oluşum bulamaz. Filtrede `GSAY >= 2` ile eleniyor; doğrudan indikatör olarak çizerken ilk günü dikkate almayın.
 - `TLVOL ≈ W*V` eşitliği tanımdan bekleniyor ama ölçülmedi.
 - Taranan sembollerde `W` verisinin dolu geldiği gözle doğrulanmalı.
 
