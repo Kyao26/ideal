@@ -38,8 +38,8 @@ Prime'da `CUM()` grafiğin başından birikir ve **seansta sıfırlanmaz**. Sean
 
 ```
 { Seans VWAP'ı — gün içi periyotlarda }
-d := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
-f := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+d := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
 
 (CUM(W*V) - d) / (CUM(V) - f)
 ```
@@ -65,17 +65,19 @@ Ders kitabı versiyonu. Aynı çıkarma hilesini kareler toplamına da uygulars�
 
 ```
 { VWAP + kümülatif hacim ağırlıklı stdev bandı }
-d  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
-f  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
-g  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*W*V), -1));
+d  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+g  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*W*V), -1));
 
 vw := (CUM(W*V) - d) / (CUM(V) - f);
 vr := (CUM(W*W*V) - g) / (CUM(V) - f) - vw*vw;
 
-vw + 2 * SQRT(MAX(vr, 0))
+vw + 2 * Sqr(MAX(vr, 0))
 ```
 
-Alt bant için son satırı `vw - 2*SQRT(MAX(vr,0))` yapın. `MAX(vr,0)` kayan nokta hatasından doğabilecek küçük negatif varyansa karşı korumadır; `MAX` desteklenmiyorsa `IF(vr>0, vr, 0)` yazın.
+Alt bant için son satırı `vw - 2*Sqr(MAX(vr,0))` yapın. `MAX(vr,0)` kayan nokta hatasından doğabilecek küçük negatif varyansa karşı korumadır.
+
+**Söz dizimi uyarısı:** Karekök fonksiyonu Prime'da `Sqr()`'dir — `SQRT()` diye bir fonksiyon **yoktur**. Alternatifi `Power(vr, 0.5)`.
 
 **Okunuşu:** Bu gerçekten hacim ağırlıklı dağılımdır. Ama seans başından kümülatif olduğu için örneklem büyüdükçe her yeni barın etkisi azalır — **bandın tepkiselliği seans ilerledikçe söner**. Kapanışa yakın bandın hareketsizleşmesi bir volatilite sinyali değil, sadece paydanın büyümüş olmasıdır. Bollinger'ın squeeze okuması buraya **taşınmaz**.
 
@@ -83,8 +85,8 @@ Alt bant için son satırı `vw - 2*SQRT(MAX(vr,0))` yapın. `MAX(vr,0)` kayan n
 
 ```
 { VWAP + kayan pencere stdev bandı }
-d  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
-f  := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+d  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f  := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
 
 vw := (CUM(W*V) - d) / (CUM(V) - f);
 
@@ -115,13 +117,13 @@ Trader başlangıç noktasını kendi seçer — bir swing dip, bir bilanço tar
 anc := YEAR()=2026 AND MONTH()=3 AND DAYOFMONTH()=10;
 ilk := anc AND REF(anc, -1) = 0;          { o günün ilk barı }
 
-d := VALUEWHEN(1., ilk, REF(CUM(W*V), -1));
-f := VALUEWHEN(1., ilk, REF(CUM(V), -1));
+d := VALUEWHEN(1, ilk, REF(CUM(W*V), -1));
+f := VALUEWHEN(1, ilk, REF(CUM(V), -1));
 
 (CUM(W*V) - d) / (CUM(V) - f)
 ```
 
-`REF(anc,-1)=0` şartı önemli: onsuz `VALUEWHEN(1., ...)` o günün **son** barını yakalar, ilkini değil.
+`REF(anc,-1)=0` şartı önemli: onsuz `VALUEWHEN(1, ...)` o günün **son** barını yakalar, ilkini değil.
 
 Anchored VWAP gün içi olmak zorunda değildir; günlük ve haftalık grafiklerde de anlamlıdır. Profesyonel kullanımın büyük kısmı da oradadır.
 
@@ -148,8 +150,8 @@ Fiyat VWAP'ın üzerindeyse o gün alım yapanların ortalaması kârdadır; alt
 Explorer/tarama için kesişim:
 
 ```
-d := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
-f := VALUEWHEN(1., DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
+d := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(W*V), -1));
+f := VALUEWHEN(1, DAYOFMONTH() <> REF(DAYOFMONTH(), -1), REF(CUM(V), -1));
 
 CROSS(C, (CUM(W*V) - d) / (CUM(V) - f))
 ```
@@ -182,7 +184,7 @@ Seans VWAP'ının yanında sık kullanılan diğer seviyeler: önceki günün VW
 
 ```
 Seans VWAP  = (CUM(W*V) - d) / (CUM(V) - f)
-Kümülatif σ = SQRT( (CUM(W*W*V)-g)/(CUM(V)-f) - VWAP² )     → bant: VWAP ± k*σ
+Kümülatif σ = Sqr( (CUM(W*W*V)-g)/(CUM(V)-f) - VWAP² )     → bant: VWAP ± k*σ
 Rolling  σ  = STDEV(vw, n)                                   → bant: VWAP ± k*σ  (= BB)
 Rolling VWAP = SUM(W*V, n) / SUM(V, n)
 ```
@@ -202,10 +204,21 @@ Rolling VWAP = SUM(W*V, n) / SUM(V, n)
 
 ## Doğrulama Notu
 
-Bu ortamda Matriks Prime çalıştırılamadığı için formüller test edilmedi.
+**Söz dizimi** Prime kullanım kılavuzuna göre teyit edildi:
 
-- **Seans VWAP'ı** (temel formül ve `CROSS` taraması): Matriks destek forumundaki topluluk formülüne dayanıyor, yapısı yerleşik.
-- **Kümülatif bant, anchored VWAP, rolling VWAP**: aynı çıkarma hilesinin genişletilmesiyle bu doküman için türetildi, **doğrulanmadı**. Özellikle `VALUEWHEN`'in kaçıncı oluşumu döndürdüğünü ve `MAX`/`SQRT` desteğini kendi kurulumunuzda teyit edin.
+| Öğe | Durum |
+|---|---|
+| `VALUEWHEN(N, koşul, değer)` | N=1 **en son** oluşumu verir. Parametre `1`, `1.` değil. |
+| `CUM(1)` | Bar sayacı — grafiğin başından her bar 1 ekler. |
+| `Sqr(Data)` | Karekök. **`SQRT()` yoktur.** Alternatif: `Power(Data, 0.5)`. |
+| `MAX(Data1, Data2)` | İki değerin büyüğü. `If(x>0,x,0)` yerine `MAX(x,0)` kullanılabilir. |
+| `AND` / `OR` | Mantıksal operatörler. **`&&` ve `||` yoktur.** |
+| `W` | Yerleşik veri serisi (AOF), periyoda göre gelir. |
+
+**Çalıştırma** ise yapılmadı — bu ortamda Prime yok. Kalan belirsizlikler:
+
+- Grafiğin ilk gününde `VALUEWHEN` henüz bir oluşum bulamaz; `d`/`f`/`g` boş dönerse ilk gün sonuçları güvenilmezdir.
 - `TLVOL ≈ W*V` eşitliği tanımdan bekleniyor ama ölçülmedi.
+- Taranan sembollerde `W` verisinin dolu geldiği gözle doğrulanmalı.
 
 Kaynaklar: [Matriks Destek — VWAP indikatörü](https://destek.matriksdata.com/?qa=15741/vwap-indikatoru), [Matriks Destek — W (ağırlıklı ortalama fiyat) ile işlem yapma](https://destek.matriksdata.com/?qa=10350/wagirlikli-ortalama-fiyat-ile-islem-yapma)
