@@ -18,22 +18,39 @@ TASARIM NOTU — NE DEGISTI, NE DEGISMEDI:
              basliyordu; 15:05 ve 15:10 barlari 51 gunun 50'sinde MEVCUT
              oldugu halde disarida kaliyordu (gunde 2 bar kor nokta,
              gunduz seansinin %1.3'u). Ikinci ve ucuncu pencere birlestirildi.
-             Ust sinir 1090 -> 1085. Bu veride 18:10 bari hic yok, son gunduz
-             bari 18:05 (T=1085); 1085 yazmak niyeti gorunur kilar.
-             12:26-12:29 bosugu korundu — hicbir 5dk barina denk gelmiyor.
+             Ust sinir 1090 -> 1045 (asagidaki olcum bolumune bak).
              ALT SINIR 615 -> 585 (09:45), kullanici karari 2026-08-04.
+             Sonuc: TF:=(T>=585 AND T<=1045);  tek pencere.
   SEANS SONU KAPAMA EKLENDI: cikis kutularina "OR T>=1080" (18:00).
              Kullanici karari 2026-08-04. Canli protokolle (her aksam
              17:30-18:00 manuel kapatma) uyumlu hale getirir.
 
-!!! COZULMESI GEREKEN CAKISMA — ILK KOSUDAN ONCE OKU:
-    TF ust siniri 1085, kapama esigi 1080. T=1080 (18:00 bari) ve T=1085
-    (18:05 bari) barlarinda GIRIS HALA ACIK ama kapama kosulu da AKTIF.
-    Ayni barda hem giris hem cikis sinyali uretilir; Matriks'in bu durumda
-    ne yapacagi belirsizdir (acip ayni bar kapatabilir ya da girisi yutabilir).
-    ONERI: TF ust sinirini 1070 (17:50 bari, kapanisi 17:55) yap. Boylece
-    son giris 17:55'te dolar, 18:00 barinda duz kapama calisir, cakisma olmaz.
-    Kullanici onayi bekliyor — su an 1085 birakildi.
+TF UST SINIRI 1045 (17:25) — OLCUME DAYALI, 2026-08-04:
+  Once cakisma vardi: TF ust 1085, kapama esigi 1080 -> T=1080 ve T=1085
+  barlarinda hem giris hem cikis sinyali uretiliyordu (Matriks'in davranisi
+  belirsiz). Ust sinir kapama esiginin ALTINDA olmali.
+  Esik "1080 - medyan tutus" kuraliyla degil, OLCUMLE secildi. Kapisiz
+  omurga, X30YVADE 5dk, 24.04-10.07.2026, 279 islem, giris saatine gore:
+      09:45-11:40   N=80   16.8 p   medyan tutus 14 bar
+      11:40-13:40   N=47    7.1 p                15 bar
+      13:40-15:40   N=78    4.6 p                12 bar
+      15:40-16:45   N=29   -2.9 p                14 bar
+      16:45-17:25   N=28  +34.1 p                10 bar   <- TEK GECEN KOVA
+      17:25-18:05   N=17    4.5 p                 5 bar   <- tutus budanmis
+  Tutus dagilimi: medyan 15 bar (75 dk) kapamasiz, 12 bar kapamali.
+  279 islemin 51'i (%18) 18:00'da zorla kapaniyor.
+  "1080 - 75 dk = 1005 (16:45)" kurali TEK GECEN KOVAYI keserdi. Gec
+  girislerin sistematik negatif oldugu hipotezi bu veride TUTMADI; en zayif
+  dilim ortada (15:40-16:45, -2.9 p). Tutus budanmasi yalnizca son kovada
+  gorunuyor. 1045 uc sorunu birden cozer: cakisma biter, budanan kova
+  cikar, en iyi kova kalir.
+  UYARI: tablonun tamami 10.7 p/islem ortalamayla SURTUNMENIN (30.4)
+  ALTINDA. Kapisiz omurga bu pencerede surtunmeyi zaten asmiyor — kovalar
+  arasi fark gercek, mutlak seviye degil. Tek pencere, N=28'lik kova kucuk,
+  coeff (1.5,0.5) gurultulu ayar. Bu esik yeni veriyle tazelenmeli.
+  TF TEK PENCEREYE INDIRILDI: eski (T>=750 AND ...) bolunmesi 5dk'da
+  islevsizdi (746-749'da hicbir bar yok). 1dk grafige kopyalanirsa
+  12:26-12:29 barlarini sessizce elerdi. Tek pencere niyeti gorunur kilar.
 
 OPT: YOK. Tek kosu. VWAP kapisi parametresiz, coeff sabit.
      Optimizasyon ayari kapatilabilir.
@@ -48,11 +65,21 @@ SYSTEM TESTER AYARLARI (CCCC — TEK GECERLI PROTOKOL):
   HL2 + Bar Onceki=1 protokolu GECERSIZDIR (tur basina ~100 p gerceklesemez
   avantaj). Eski dosyalardaki o ayar bloklari kullanilmayacak.
 
-KIYAS KOSUSU — ZORUNLU:
-  Referans = ST_ADP_RMI kapisiz (ayni coeff, ayni TF), AYNI donem, AYNI CCCC
-  ayarlari. Kapinin degeri ancak bu farkla olculur.
-  Referans kosusunda TF'yi KALDIRMA — iki degisken birden oynar (kapi + saat)
-  ve fark ayirt edilemez.
+KIYAS KOSUSU — ZORUNLU, TEK DEGISKEN:
+  Yanlis referans "kapisiz sistem" DEGILDIR. Kapiyi tamamen kaldirirsan uc
+  degisken birden oynar ve fark VWAP'i olcmez:
+     1) seans sonu kapama (OR T>=1080) — VIOP'ta gecelik gap tek basina
+        sonucu domine edebilir
+     2) SOK guard'i (GSAY>=2 AND barNo>=6) — referans ilk iki gunde ve her
+        gunun ilk 5 barinda islem alir, test surumu almaz; bu kapinin degil
+        isinmanin etkisidir
+     3) TF
+  DOGRU REFERANS: yalnizca VWAP kosulunu dusur, geri kalani AYNEN birak.
+  Test surumu:   LFIL:=SOK AND C>vwap;      SFIL:=SOK AND C<vwap;
+  Referans:      LFIL:=SOK;                 SFIL:=SOK;
+  Boylece TF, SOK ve seans sonu kapama iki kosuda ozdes kalir; fark tam
+  olarak C>vwap / C<vwap kosulunu olcer. Dosya sonundaki REFERANS bolumune
+  bak — degistirilecek tek satir orada.
 
 W VERISI — KOD KORUMALI, YINE DE BAK:
   W = Weighted Average (bar bazinda agirlikli ortalama, KAHIN klavuz s8).
@@ -84,6 +111,9 @@ TESHIS — ILK KOSUDA KONTROL ET:
      Surekli 1 ise kesmiyor, surekli 0 ise girisleri tamamen kapatmis.
   4) vwap ciz -> fiyata sarilmali ve HER GUN BASINDA sicrayip yeniden
      baslamali. Duz cizgiyse gun donumu calismiyor.
+  5) HAYALET ISLEM KONTROLU: "OR T>=1080" her gun kosulsuz TRUE doner.
+     Pozisyon yokken no-op olmali. Islem listesinde 18:00/18:05 damgali,
+     karsiliginda girisi olmayan kapama satiri VARSA haber ver.
 
 BILINEN, ZARARSIZ:
   - Kutu 1 ve 3 GSAY>=2 bekler, kutu 2 ve 4 beklemez. Ilk gunlerde cikislar
@@ -131,58 +161,68 @@ DORT KUTUNUN SON SATIRI — KOPYALARKEN KONTROL ET:
 
 
 =========================================
-INCELEME NOTLARI — 2026-08-10
+INCELEME — v2, 2026-08-10
 =========================================
 
-A) KIYAS KOSUSU EKSIK TANIMLI — ILK KOSUDAN ONCE DUZELT
-   "Referans = kapisiz, ayni TF" yeterli degil. Iki gizli degisken daha var:
+A) ASIL BULGU: OMURGA SURTUNMEYI ASMIYOR — TF BUNU COZMEZ
+   Tablonun agirlikli ortalamasi tam olarak 10.69 p/islem (279 islem).
+   Surtunme 30.4 p. Yani kapisiz omurga bu pencerede islem basina
+   -19.7 p. Alti kovadan yalnizca biri esigi asiyor.
+   Bu, TF esigi tartismasindan buyuk bir sorundur. VWAP kapisinin isi
+   islem basi edimi ~3 KAT artirmak olur; bir yon filtresinden bu
+   beklenmez.
+   ONCELIK: TF'yi bir daha oynatmadan once kapili/kapisiz kiyasi kos.
+   Kapi 30.4'e yaklasmiyorsa 1045 mi 1075 mi sorusu onemsizdir ve
+   asil karar "bu omurga bu enstrumanda calismiyor" olur.
 
-   A1) SEANS SONU KAPAMA. Referansta "OR T>=1080" yoksa, olculen fark
-       VWAP kapisi + gecelik tasimanin kaldirilmasi olur. Iki etki
-       birbirine karisir. Referans cikis kutulari da "OR T>=1080"
-       icermeli.
+B) 1045 SECIMI IN-SAMPLE BIR BAHIS
+   Esik, alti kovadan en iyisini (16:45-17:25, +34.1 p, N=28) iceride
+   tutacak sekilde, VERIYE BAKTIKTAN SONRA secildi. Bu tanimi geregi
+   in-sample optimizasyondur.
+   N=28'de guven araligi cok genis. Islem basi P&L standart sapmasi s
+   iken standart hata s/5.29:
+        s= 60 p -> SH 11.3 -> %95 GA [11.9, 56.3]
+        s= 80 p -> SH 15.1 -> %95 GA [ 4.5, 63.7]
+        s=100 p -> SH 18.9 -> %95 GA [-2.9, 71.1]
+        s=120 p -> SH 22.7 -> %95 GA [-10.3, 78.5]
+   ~14 barlik tutuslarda s'nin 80-120 p bandinda olmasi beklenir; o
+   durumda kova SIFIRDAN BILE ayirt edilemez.
+   YAPILACAK: o kovanin islem basi standart sapmasini raporla. SH,
+   34.1'in yarisindan buyukse esik gurultuye fit edilmis demektir.
 
-   A2) SOK GUARD'I. Test surumunde SOK = GSAY>=2 AND barNo>=6 AND DHAC>0.
-       Referansta SOK hic yoksa, referans ilk iki gunde ve her gunun
-       ilk 5 barinda islem alabilir; test surumu alamaz. Bu, kapinin
-       degil isinmanin etkisidir.
+C) KESME GEREKCESI P&L DEGIL, YAPISAL — BOYLE YAZ
+   1045, POZITIF bir kovayi (17:25-18:05, +4.5 p) keserken NEGATIF bir
+   kovayi (15:40-16:45, -2.9 p) iceride birakiyor. Olcut saf P&L olsaydi
+   once ortadaki kova kesilirdi.
+   Savunulabilir gerekce P&L degil YAPISAL: son kovada medyan tutus
+   5 bara budanmis (digerlerinde 12-15). Bu mekanik bir bozulma, gurultu
+   degil. Dokumanda gerekce boyle durmali; "en kotu kovayi kestik"
+   ifadesi veriyle celisir.
 
-   DOGRU REFERANS — yalnizca C>vwap kosulunu dusur, geri kalani birak:
-        LFIL := SOK;          { test surumunde: SOK AND C>vwap }
-        SFIL := SOK;          { test surumunde: SOK AND C<vwap }
-   Boylece TF, SOK ve seans sonu kapama iki kosuda ayni kalir ve fark
-   tam olarak VWAP yon kosulunu olcer.
+D) UC ADAY, UCU DE SAVUNULABILIR — FARKLI BAHISLER
+   1075  yalnizca cakismayi cozer, baska hicbir sey varsaymaz.
+         EN AZ in-sample bahis iceren secim.
+   1045  en iyi kovayi korur + budanan kovayi keser. Su anki secim.
+         16:45-17:25 kovasinin gercek oldugu bahsini iceriyor.
+   1005  tutus budanmasini tamamen onler (medyan 75 dk once giris).
+         En iyi kovayi keser.
+   Out-of-sample teyit gelene kadar 1075 en dayanikli olanidir. 1045'te
+   kalmak mesru, ama bahsin farkinda olarak.
 
-B) CAKISMA — 1070 ONERISI DOGRU, AMA ASIL SORU BASKA
-   TF ust siniri < kapama esigi olmasi gerektigi dogru; 1070 bunu saglar
-   (son giris 17:50 bari, kapanisi 17:55; kapama 18:00 barinda).
-   Ancak cakisma bir semptom. Asil soru: bir islemin gelismesi icin kac
-   bar gerekiyor?
-   17:50'de acilan pozisyon 18:00 barinda zorla kapanir — iki bar omur.
-   CCCC ile tur basina ~28 bp maliyet (2 x 4 bp komisyon + 2 x 10 bp kayma)
-   dusuldugunde bu neredeyse kesin zarardir.
-   ONERI: kapisiz referans kosusundan islem SURESI dagilimini cikar,
-   medyan sureyi bul, TF ust sinirini "kapama esigi - medyan sure" yap.
-   Olcmeden 1070 yazmak cakismayi cozer ama maliyetli son-dakika
-   girislerini cozmez.
+E) N BEKLENTISI TUTARSIZ
+   Kapisiz kosu 2.5 ayda 279 islem uretti. Degerlendirme olcutundeki
+   "<=60 / 2.5 ay" bandi kapinin islemlerin %78'ini kesmesini varsayiyor.
+   Bir yon filtresi tipik olarak ~%50 keser -> ~140 islem beklenir.
+   Ya band gozden gecirilmeli ya da %78 beklentisinin gerekcesi yazilmali.
+   Ters risk: kapi gercekten cok keserse taraf basina N<30'a duser ve
+   kendi kuralinizca istatistik disi olur.
 
-C) TF PENCERE BOLUNMESI ARTIK ISLEVSIZ — VE 1dk'DA TUZAK
-   (T>=585 AND T<=745) OR (T>=750 AND T<=1085)
-   5dk barlari 5'in katlarinda oldugu icin 746-749 araliginda hicbir bar
-   yok. Ifade 5dk'da "T>=585 AND T<=1085" ile BIREBIR AYNI.
-   Bolunmus hali zararsiz ama 1dk grafige kopyalanirsa 12:26-12:29
-   barlarini sessizce eler. Ya tek pencereye indirin ya da bolunmenin
-   neden durdugunu yaninda yazin.
-
-D) T>=1080 HER GUN KOSULSUZ TETIKLENIR
-   Cikis kutulari 18:00 ve 18:05 barlarinda fiyattan bagimsiz olarak
-   TRUE doner. Pozisyon yoksa no-op olmali; ilk kosuda islem listesinde
-   18:00/18:05'te hayalet islem olmadigini dogrulayin.
-
-E) CCCC MALIYET VARSAYIMI MUHAFAZAKAR — IYI
-   Tur basina ~28 bp, VIOP icin gercekci-ustu. Yanlis pozitif uretme
-   riskini dusurur. Kapi bu maliyetin altinda deger uretiyorsa gercekten
-   uretiyordur.
+F) DEGERLENDIRME OLCUTLERI IYI — BIRI EKSIK
+   Mevcut dort olcut (brut artisi, elenenlerin kalitesi, en iyi 5 islem
+   cikarilinca, N bandi) saglam. Eklenmesi gereken:
+   5) LONG ve SHORT ayri raporlansin. Kapi iki tarafa simetrik uygulaniyor
+      ama X30YVADE'de yon asimetrisi olabilir; toplamda notr gorunen bir
+      kapi bir tarafta iyi bir tarafta kotu olabilir.
 
 
 =========================================
@@ -200,7 +240,7 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=585 AND T<=745) OR (T>=750 AND T<=1085);
+TF:=(T>=585 AND T<=1045);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -252,7 +292,7 @@ fDn:=If(dnBnd<PREV OR Ref(C,-1)>PREV,dnBnd,PREV);
 dir:=If(Cum(1)<=AP,-1,If(PREV>0 AND C<fUp,-1,If(PREV<0 AND C>fDn,1,PREV)));
 ST:=If(dir>0,fUp,fDn);
 T:=HOUR()*60+MINUTE();
-TF:=(T>=585 AND T<=745) OR (T>=750 AND T<=1085);
+TF:=(T>=585 AND T<=1045);
 WP:=If(W>0,W,(H+L+C)/3);
 YGUN:=DAYOFMONTH()<>Ref(DAYOFMONTH(),-1);
 GSAY:=Cum(If(YGUN,1,0));
@@ -291,8 +331,28 @@ Cross(C,ST) OR T>=1080
 
 
 =========================================
-KIYAS REFERANSI — BUY/SHORT icin LFIL/SFIL satirini degistir
-Diger her sey (TF, SOK, seans sonu kapama, CCCC) AYNI kalir.
+REFERANS KOSUSU — TEK DEGISKEN KIYASI
 =========================================
-LFIL:=SOK;          { BUY  referansi  — test: SOK AND C>vwap }
-SFIL:=SOK;          { SHORT referansi — test: SOK AND C<vwap }
+Ayni donem, ayni CCCC ayarlari, ayni dosya. SADECE su iki satir degisir;
+diger her sey (TF, SOK, seans sonu kapama, coeff, omurga) AYNEN kalir.
+
+  ALIS kutusunda:
+      TEST      LFIL:=SOK AND C>vwap;
+      REFERANS  LFIL:=SOK;
+
+  ACIGA SATIS kutusunda:
+      TEST      SFIL:=SOK AND C<vwap;
+      REFERANS  SFIL:=SOK;
+
+  SATIS ve POZ. KAPAMA kutulari iki kosuda da degismez.
+
+Iki kosunun farki tam olarak VWAP yon kosulunu olcer.
+
+DEGERLENDIRME:
+  1) Brut/islem artti mi? (surtunme 30.4 p)
+  2) ELENEN islemlerin brut/islem'i kalanlarin ALTINDA mi? Ustundeyse
+     kapi iyi islemleri eliyor demektir.
+  3) En iyi 5 islem cikarilinca NET hala pozitif mi?
+  4) Islem sayisi bandi. N<30 istatistik disidir.
+  5) LONG ve SHORT AYRI raporlansin. Toplamda notr gorunen bir kapi bir
+     tarafta iyi bir tarafta kotu olabilir.
