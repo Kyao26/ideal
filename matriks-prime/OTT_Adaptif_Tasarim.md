@@ -217,7 +217,7 @@ Geriye tek bir varsayım kalıyor: `Log()`. O da bir **oran** içinde kullanıld
 Tasarımı doğrudan şekillendirdikleri için açıkça yazıyorum:
 
 1. **Döngü yok.** Argmax arayan (ör. otokorelasyon periodogramı ile baskın döngü bulan)
-   yöntemler doğrudan yazılamaz. Bu yüzden karakter ölçümü `HHV/LLV/Stdev/Sum` gibi
+   yöntemler doğrudan yazılamaz. Bu yüzden karakter ölçümü `HHV/LLV/Sum/Abs` gibi
    kapalı-form, pencere tabanlı tahmincilerle yapıldı.
 2. **Formül başına tek `PREV` zinciri.** OTT'nin ratchet'i zaten bir özyinelemedir; o
    yüzden diğer her şey (D, H, σ_R, per seçimi) **özyinelemesiz** tutuldu. T4'ün
