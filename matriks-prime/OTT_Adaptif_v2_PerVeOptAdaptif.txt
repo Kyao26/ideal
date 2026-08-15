@@ -1,35 +1,42 @@
 { ==========================================================================
   OTT-A v2  |  KARAKTER UYARLAMALI OTT  -  Tasarim 2
-  Matriks Prime / Indicator Builder
+  MATRIKS PRIME  (klasik Matriks formul dili)
   --------------------------------------------------------------------------
   HER IKI opt de adaptif:
-    per  <- Ehlers FRAMA katsayisi:  alpha = exp(-4.6*(D-1)),  L = 2/alpha - 1
-            L, geometrik bankaya {2,3,5,8,13,21} yuvarlanir.
-            Esikler komsu uyelerin GEOMETRIK ORTALAMASIDIR (secilmis degil,
-            bankadan turemis): 2.45 / 3.87 / 6.32 / 10.2 / 16.5
-    opt  <- 100 * sigmaR / H     (v1 ile ayni turetim)
 
-  NEDEN BANKA? Matriks'te Mov(C,per,VAR) periyodu SABIT olmak zorundadir;
-  seri veremezsiniz. Bu yuzden 6 sabit VAR ortalamasi hesaplanip ic ice
-  If() ile secilir. Dilin kisiti tasarimi belirledi.
+    per  <- fraktal olcek oranindan. Ehlers: alpha = exp(-4.6*(D-1)),
+            L = 2/alpha - 1. Exp() KULLANMAMAK icin bu esikler bir kez
+            tersine cevrilip dogrudan Rr = 2^D uzerinden yazildi:
+
+               Rr < 2.171 -> per 2      Rr < 2.593 -> per 8
+               Rr < 2.287 -> per 3      Rr < 2.774 -> per 13
+               Rr < 2.432 -> per 5      digeri     -> per 21
+
+            Banka {2,3,5,8,13,21}, esikler komsu uyelerin GEOMETRIK
+            ORTALAMASININ Rr karsiligidir (secilmis degil, turetilmis).
+            Yon dogru: Rr buyudukce (grafik testereleserek D artar) periyot
+            UZAR, yani ortalama yavaslar.
+
+    opt  <- 100 * sigmaR / Hrs   (v1 ile ayni turetim)
+
+  NEDEN BANKA? Mov(C,per,VAR) periyodu SABIT olmak zorundadir; seri
+  veremezsiniz. 6 sabit VAR ortalamasi hesaplanip If() ile secilir.
 
   v1'i calistirip anladiktan SONRA bu surume gecin.
   ========================================================================== }
 
-{ --- 1) Fraktal boyut ---------------------------------------------------- }
+{ --- 1) Fraktal olcek orani ---------------------------------------------- }
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
-Dfr:=If(Dfr<1,1,If(Dfr>2,2,Dfr));
+Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
 
-Hrs:=2-Dfr;
+Hrs:=2-Log(Rr)/Log(2);
 Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
 
-{ --- 2) ADAPTIF PERIYOT -------------------------------------------------- }
-alp:=Exp(-4.6*(Dfr-1));
-Lf:=2/alp-1;
-pB:=If(Lf<2.45,2,If(Lf<3.87,3,If(Lf<6.32,5,If(Lf<10.2,8,If(Lf<16.5,13,21)))));
+{ --- 2) ADAPTIF PERIYOT (Exp'siz banka secimi) --------------------------- }
+pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
 
 C1:=If(pB=2,Mov(C,2,VAR),
     If(pB=3,Mov(C,3,VAR),
@@ -39,7 +46,8 @@ C1:=If(pB=2,Mov(C,2,VAR),
 
 { --- 3) ADAPTIF OPT ------------------------------------------------------ }
 Rz:=(C-C1)/C;
-SgR:=Stdev(Rz,20);
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 optA:=100*SgR/Hrs;
 optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
 

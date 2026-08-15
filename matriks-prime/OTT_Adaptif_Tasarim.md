@@ -61,9 +61,14 @@ Bant, fiyatın kendi oynaklığıyla değil, **ortalamadan sapmanın** oynaklı�
 ölçeklenmeli — çünkü OTT'nin bandı C1 etrafına kuruluyor:
 
 ```
-Rz   = (C − C1) / C          { boyutsuz artık }
-σ_R  = Stdev(Rz, 2n)
+Rz   = (C − C1) / C                              { boyutsuz artık }
+σ_R  = 1.2533 · Sum(|Rz − ort(Rz)|, 2n) / 2n     { ortalama mutlak sapma → σ }
 ```
+
+`Stdev()` yerine ortalama mutlak sapma kullanıldı: fonksiyon adı sürümden sürüme
+değişebiliyor, `Sum` ve `Abs` ise her sürümde var. `1.2533 = √(π/2)` normal dağılımda
+mutlak sapmayı standart sapmaya çeviren matematiksel dönüşüm sabitidir — ayarlanabilir
+bir parametre değil. Yan faydası: MAD, aykırı barlara standart sapmadan daha dayanıklıdır.
 
 Fiyata bölündüğü için TL cinsinden fiyat seviyesinden bağımsızdır: 5 TL'lik hisse ile
 500 TL'lik hisse aynı formülü kullanır.
@@ -120,6 +125,11 @@ eşikler: √(2·3)=2.45, √(3·5)=3.87, √(5·8)=6.32, √(8·13)=10.2, √(1
 
 Eşikler komşu üyelerin **geometrik ortalamasıdır** — yani seçilmiş değil, bankanın
 kendisinden türemiştir.
+
+Kodda `Exp()` çağrısı yok: yukarıdaki eşikler bir kez tersine çevrilip doğrudan
+`Rr = 2^D` üzerinden yazıldı (`Rr < 2.171 → per 2`, … , `> 2.774 → per 21`). Aynı
+matematik, bir fonksiyon eksiğiyle. Yön kontrolü: Rr büyüdükçe D büyür, grafik
+testereleşir, seçilen periyot **uzar** — yani ortalama yavaşlar. Doğru davranış.
 
 > **Neden banka?** Matriks formül dilinde `Mov(C, per, VAR)` çağrısının periyodu sabit
 > olmak zorundadır; seri veremezsiniz. Bu yüzden 6 sabit VAR ortalaması önceden
@@ -180,6 +190,27 @@ anlamlı ölçüde kötü olamaz, üstelik geçmişe fit edilmeden.
 serbest bırakın. T4'ü ancak çok formüllü kuruluma girmeye hazırsanız değerlendirin.
 
 ---
+
+## 3.5 Hangi dil? — Prime ≠ Matriks IQ
+
+Önemli bir ayrım: **Matriks IQ'nun formül dili tamamen farklıdır.** Prime, klasik
+(MetaStock benzeri) Matriks dilini kullanır — `:=` atama, `PREV` özyinelemesi,
+`Cum(1)` bar sayacı, `Mov(C,per,VAR)`. Bu depodaki formüller Prime lehçesindedir;
+IQ'ya taşımak isterseniz yeniden yazım gerekir.
+
+**Kullanılan fonksiyon kümesi bilinçli olarak dar tutuldu:**
+
+| Kullanılan | `C H L` · `Mov(...,VAR)` · `Ref` · `HHV` · `LLV` · `Sum` · `Abs` · `Log` · `If` · `Cum` · `Cross` · `PREV` |
+|---|---|
+| **Kullanılmadı** | `Stdev` · `Exp` · `Sqrt` · `Max` · `Min` — adları/varlıkları sürüme göre değişebildiği için hepsi `Sum`+`Abs` ile yeniden yazıldı |
+
+Geriye tek bir varsayım kalıyor: `Log()`. O da bir **oran** içinde kullanıldığı için
+(`Log(Rr)/Log(2)`) tabanı ne olursa olsun sonuç aynıdır.
+
+> **OTT zorunlu değil.** Ratchet motoru olarak OTT seçildi çünkü bu lehçede çalıştığı
+> kanıtlanmış tek `PREV` kalıbı o. Karakter ölçüm katmanı (D → H → σ_R → opt) motordan
+> bağımsızdır; SuperTrend, HalfTrend ya da düz bir yüzdesel iz süren stop da aynı
+> `optA` serisiyle beslenebilir. Motoru değiştirmek isterseniz ölçüm katmanı aynen kalır.
 
 ## 4. Matriks Prime dilinin dayattığı kısıtlar
 

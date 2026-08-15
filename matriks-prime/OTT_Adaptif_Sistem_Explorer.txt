@@ -1,21 +1,25 @@
 { ==========================================================================
   OTT-A | SISTEM (System Tester) ve TARAMA (Explorer) KOSULLARI
+  MATRIKS PRIME
   Tasarim 1 (adaptif opt) + Tasarim 3 (rejim anahtari)
   --------------------------------------------------------------------------
-  REJIM ANAHTARI: sistem yonunu grafigin karakterine gore tayin eder.
-      Hrs > 0.5 + s  -> kalici/trendli  -> OTT yonu uygulanir
-      Hrs < 0.5 - s  -> salinimli       -> YON ALINMAZ (flat)
-  Buradaki 0.5 keyfi bir esik degil, rastgele yuruyusun tam kendisidir:
-  trend takibinin beklenen degeri ancak seri kaliciysa pozitiftir.
-  s ise tahmincinin BIR STANDART HATASIDIR: s = Stdev(Hrs,20)/Sqrt(20).
-  Sinir civarinda mod atmasini engeller; ayarlanabilir bir sayi degildir.
+  REJIM ANAHTARI - sistem yonunu grafigin karakterine gore tayin eder:
+      Hrs > 0.5 + sH  -> kalici/trendli  -> OTT yonu uygulanir
+      Hrs < 0.5 - sH  -> salinimli       -> YON ALINMAZ (flat)
 
-  PREV HAKKINDA (onemli)
-  Asagidaki kosullar kendi kendine yeterlidir: OTT ratchet'i "Ott:=" degiskenine
-  atanir ve PREV o degiskenin onceki degerine baglanir (MetaStock uyumlu
-  davranis). Surumunuzde PREV kosulun kendi gecmisine baglanirsa ratchet bozulur;
-  bu durumda OTT_Adaptif_v1'i kayitli indikator olarak olusturup System Tester
-  icinden o indikatoru cagirin.
+  0.5 keyfi bir esik degil, rastgele yuruyusun tam kendisidir: trend
+  takibinin beklenen degeri ancak seri kaliciysa pozitiftir.
+  sH ise tahmincinin BIR STANDART HATASIDIR (ortalama mutlak sapmadan
+  turetilir, /4.472 = /karekok(20)). Sinirda mod atmasini engeller;
+  ayarlanabilir bir sayi degildir.
+
+  PREV HAKKINDA
+  Kosullar kendi kendine yeterlidir: ratchet "Ott:=" degiskenine atanir ve
+  PREV o degiskenin onceki degerine baglanir. Surumunuzde PREV kosulun kendi
+  gecmisine baglanir ve ratchet bozulursa, v1'i KAYITLI INDIKATOR olarak
+  olusturup System Tester icinden o indikatoru cagirin.
+
+  Kullanilan fonksiyonlar: Mov(...,VAR) Ref HHV LLV Sum Abs Log If Cum Cross PREV
   ========================================================================== }
 
 
@@ -25,14 +29,17 @@ per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
-Hrs:=2-Dfr;
+Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
+Hrs:=2-Log(Rr)/Log(2);
 Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
-s:=Stdev(Hrs,20)/Sqrt(20);
+Hm:=Sum(Hrs,20)/20;
+sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.472;
 
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
-SgR:=Stdev(Rz,20);
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 optA:=100*SgR/Hrs;
 optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
 
@@ -40,7 +47,7 @@ q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
 
-Cross(C1,Ott) AND Hrs>0.5+s
+Cross(C1,Ott) AND Hrs>0.5+sH
 
 
 { ================== SAT KOSULU ============================================ }
@@ -49,14 +56,17 @@ per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
-Hrs:=2-Dfr;
+Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
+Hrs:=2-Log(Rr)/Log(2);
 Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
-s:=Stdev(Hrs,20)/Sqrt(20);
+Hm:=Sum(Hrs,20)/20;
+sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.472;
 
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
-SgR:=Stdev(Rz,20);
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 optA:=100*SgR/Hrs;
 optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
 
@@ -64,16 +74,15 @@ q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
 
-Cross(Ott,C1) OR Hrs<0.5-s
+Cross(Ott,C1) OR Hrs<0.5-sH
 
 
 { ================== EXPLORER / TARAMA ====================================
-  Bugun AL sinyali veren ve rejimi trendli olan semboller.
-  Kolonlara ayrica Hrs ve optA ekleyin: tarama sonucunda hangi hissenin
-  hangi karakterde oldugunu gorursunuz.
-  ======================================================================== }
+  FILTRE  : yukaridaki AL kosulunun aynisi
+  KOLON 1 : Hrs   -> sembolun rejimi
+  KOLON 2 : optA  -> sistemin o sembol icin sectigi bant yuzdesi
+  KOLON 3 : Ott   -> takip eden stop seviyesi
 
-{ FILTRE kolonu: yukaridaki AL kosulunun aynisi.
-  KOLON 1 : Hrs     -> rejim
-  KOLON 2 : optA    -> o sembol icin sistemin sectigi bant yuzdesi
-  KOLON 3 : Ott     -> takip eden stop seviyesi }
+  Boylece tarama sadece "sinyal var" demez; hangi hissenin hangi karakterde
+  oldugunu da gosterir.
+  ======================================================================== }
