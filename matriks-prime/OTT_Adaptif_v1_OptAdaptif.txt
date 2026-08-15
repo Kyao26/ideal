@@ -1,0 +1,50 @@
+{ ==========================================================================
+  OTT-A v1  |  KARAKTER UYARLAMALI OTT  -  Tasarim 1
+  Matriks Prime / Indicator Builder
+  --------------------------------------------------------------------------
+  per sabit (2, klasik OTT degeri), opt HER BAR grafigin karakterinden
+  turetilir:        opt = 100 * sigmaR / H
+      sigmaR : (C - C1)/C artiginin standart sapmasi  -> gurultu genligi
+      H      : Hurst usteli (2 - fraktal boyut)       -> kaliciik olcusu
+  Trendli grafikte (H buyuk) bant DARALIR, testere grafikte GENISLER.
+
+  DIKKAT
+  - H, L, C, V Matriks'te fiyat serileridir. Hurst usteli bu yuzden "Hrs"
+    olarak adlandirildi; "H" ismini KULLANMAYIN.
+  - HHV/LLV/Stdev periyotlari sabit sayi olmak zorunda oldugu icin olcum
+    penceresi (n=10, 2n=20) literal yazildi. Pencereyi degistirecekseniz
+    10 -> yeni n, 20 -> 2n olacak sekilde 6 yerde birden degistirin.
+  - Tek dogrulanmasi gereken fonksiyon adi: Stdev(seri, periyot).
+    Surumunuzde farkliysa (Std / StDev) sadece o satiri duzeltin.
+  ========================================================================== }
+
+per:=2;
+
+{ --- 1) Fraktal boyut (Ehlers menzil-ikiye-katlama) ---------------------- }
+{ Log'un tabani onemsizdir: ifade bir log ORANI oldugu icin taban sadelesir. }
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
+
+{ --- 2) Hurst usteli (sayisal guvenlik sinirlariyla) --------------------- }
+Hrs:=2-Dfr;
+Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+
+{ --- 3) VAR ortalamasi ve reziduel oynaklik ------------------------------ }
+C1:=Mov(C,per,VAR);
+Rz:=(C-C1)/C;
+SgR:=Stdev(Rz,20);
+
+{ --- 4) ADAPTIF OPT ----------------------------------------------------- }
+{ bant orani = z * sigmaR,  z = 1/(2H)  ->  opt = 200*z*sigmaR = 100*sigmaR/H }
+optA:=100*SgR/Hrs;
+optA:=If(optA<0.05,0.05,If(optA>10,10,optA));   { patolojik veriye karsi kelepce }
+
+{ --- 5) OTT ratchet (klasik yapinin aynisi, opt artik seri) -------------- }
+q1:=Ref(C1,-2)*(1+optA/200);
+q2:=Ref(C1,-2)*(1-optA/200);
+
+{ 1. cizgi: OTT-A   |   2. cizgi: destek (VAR ortalamasi) }
+If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+C1

@@ -1,0 +1,44 @@
+{ ==========================================================================
+  OTT-A | KARAKTER GOSTERGESI (teshis paneli)
+  Matriks Prime / Indicator Builder  -  ayri panelde calistirin
+  --------------------------------------------------------------------------
+  Sistemi kurmadan ONCE bunu acin. Amaci sinyal uretmek degil, OTT-A'nin
+  grafikten NE OKUDUGUNU gostermektir:
+
+    1. cizgi : Hrs   (Hurst usteli)   -> 0.5 cizgisinin ustu = trend rejimi
+    2. cizgi : 0.5   (rastgele yuruyus referansi)
+    3. cizgi : optA  (hesaplanan opt yuzdesi)
+    4. cizgi : pB    (hesaplanan periyot - v2 mantigi)
+
+  NEYE BAKMALI
+  - Hrs cogunlukla 0.3-0.7 arasinda gezmeli. Surekli kelepcede (0.2 / 0.9)
+    duruyorsa olcum penceresi sembole gore cok kisa/uzundur.
+  - optA sizin elle kullandiginiz sabit opt degerinin etrafinda bir bantta
+    gezinmeli. Sistematik olarak cok uzaksa CARPAN EKLEMEYIN; sigmaR'nin
+    penceresini gozden gecirin (carpan eklemek optimizasyona geri donustur).
+  - pB bar basina zipliyorsa v2 yerine v1'de kalin.
+  ========================================================================== }
+
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
+Dfr:=If(Dfr<1,1,If(Dfr>2,2,Dfr));
+
+Hrs:=2-Dfr;
+Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+
+alp:=Exp(-4.6*(Dfr-1));
+Lf:=2/alp-1;
+pB:=If(Lf<2.45,2,If(Lf<3.87,3,If(Lf<6.32,5,If(Lf<10.2,8,If(Lf<16.5,13,21)))));
+
+C1:=Mov(C,2,VAR);
+Rz:=(C-C1)/C;
+SgR:=Stdev(Rz,20);
+optA:=100*SgR/Hrs;
+optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+
+Hrs;
+0.5;
+optA;
+pB

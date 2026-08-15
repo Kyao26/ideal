@@ -1,0 +1,51 @@
+{ ==========================================================================
+  OTT-A v2  |  KARAKTER UYARLAMALI OTT  -  Tasarim 2
+  Matriks Prime / Indicator Builder
+  --------------------------------------------------------------------------
+  HER IKI opt de adaptif:
+    per  <- Ehlers FRAMA katsayisi:  alpha = exp(-4.6*(D-1)),  L = 2/alpha - 1
+            L, geometrik bankaya {2,3,5,8,13,21} yuvarlanir.
+            Esikler komsu uyelerin GEOMETRIK ORTALAMASIDIR (secilmis degil,
+            bankadan turemis): 2.45 / 3.87 / 6.32 / 10.2 / 16.5
+    opt  <- 100 * sigmaR / H     (v1 ile ayni turetim)
+
+  NEDEN BANKA? Matriks'te Mov(C,per,VAR) periyodu SABIT olmak zorundadir;
+  seri veremezsiniz. Bu yuzden 6 sabit VAR ortalamasi hesaplanip ic ice
+  If() ile secilir. Dilin kisiti tasarimi belirledi.
+
+  v1'i calistirip anladiktan SONRA bu surume gecin.
+  ========================================================================== }
+
+{ --- 1) Fraktal boyut ---------------------------------------------------- }
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Dfr:=If(N1>0 AND N2>0 AND N3>0,(Log(N1+N2)-Log(N3))/Log(2),1.5);
+Dfr:=If(Dfr<1,1,If(Dfr>2,2,Dfr));
+
+Hrs:=2-Dfr;
+Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+
+{ --- 2) ADAPTIF PERIYOT -------------------------------------------------- }
+alp:=Exp(-4.6*(Dfr-1));
+Lf:=2/alp-1;
+pB:=If(Lf<2.45,2,If(Lf<3.87,3,If(Lf<6.32,5,If(Lf<10.2,8,If(Lf<16.5,13,21)))));
+
+C1:=If(pB=2,Mov(C,2,VAR),
+    If(pB=3,Mov(C,3,VAR),
+    If(pB=5,Mov(C,5,VAR),
+    If(pB=8,Mov(C,8,VAR),
+    If(pB=13,Mov(C,13,VAR),Mov(C,21,VAR))))));
+
+{ --- 3) ADAPTIF OPT ------------------------------------------------------ }
+Rz:=(C-C1)/C;
+SgR:=Stdev(Rz,20);
+optA:=100*SgR/Hrs;
+optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+
+{ --- 4) OTT ratchet ------------------------------------------------------ }
+q1:=Ref(C1,-2)*(1+optA/200);
+q2:=Ref(C1,-2)*(1-optA/200);
+
+If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+C1
