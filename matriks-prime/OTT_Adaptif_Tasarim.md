@@ -200,12 +200,19 @@ IQ'ya taşımak isterseniz yeniden yazım gerekir.
 
 **Kullanılan fonksiyon kümesi bilinçli olarak dar tutuldu:**
 
-| Kullanılan | `C H L` · `Mov(...,VAR)` · `Ref` · `HHV` · `LLV` · `Sum` · `Abs` · `Log` · `If` · `Cum` · `Cross` · `PREV` |
+| Kullanılan | `C H L` · `Mov(...,VAR)` · `Ref` · `HHV` · `LLV` · `Sum` · `Abs` · `Log` · `Sqrt` · `If` · `Cum` · `Cross` · `PREV` |
 |---|---|
-| **Kullanılmadı** | `Stdev` · `Exp` · `Sqrt` · `Max` · `Min` — adları/varlıkları sürüme göre değişebildiği için hepsi `Sum`+`Abs` ile yeniden yazıldı |
+| **Kullanılmadı** | `Stdev` · `Exp` · `Max` · `Min` — adları/varlıkları sürüme göre değişebildiği için `Sum`+`Abs` ile yeniden yazıldı |
 
-Geriye tek bir varsayım kalıyor: `Log()`. O da bir **oran** içinde kullanıldığı için
-(`Log(Rr)/Log(2)`) tabanı ne olursa olsun sonuç aynıdır.
+**Kullanıcının Indicator Builder testiyle doğrulandı:** `Sqrt()` çalışıyor, `Log()`
+çalışıyor ve **doğal logaritma** (ln 100 = 4.6052). Doğal olması kodu etkilemiyor,
+çünkü `Log(Rr)/Log(2)` bir orandır ve taban sadeleşir.
+
+Geriye doğrulanacak üç şey kalıyor — `00_SOZDIZIMI_TESTI.txt` tam olarak bunları
+ölçer: **(a)** `Mov(C,2,VAR)` (VIDYA tipinin adı), **(b)** `PREV`'in atandığı
+değişkenin geçmişine bağlanıp bağlanmadığı, **(c)** ratchet kalıbının bütün olarak
+çalışması. (b) beklendiği gibi çıkmazsa sistem koşulları kendi kendine yeterli olmaz;
+OTT-A'nın kayıtlı indikatör olarak çağrılması gerekir.
 
 > **OTT zorunlu değil.** Ratchet motoru olarak OTT seçildi çünkü bu lehçede çalıştığı
 > kanıtlanmış tek `PREV` kalıbı o. Karakter ölçüm katmanı (D → H → σ_R → opt) motordan

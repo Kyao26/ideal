@@ -1,0 +1,66 @@
+{ ==========================================================================
+  00 | MATRIKS PRIME SOZDIZIMI TESTI
+  Indicator Builder'a yapistirip AYRI PANELDE calistirin.
+  Amac sinyal uretmek degil, OTT-A'nin dayandigi 3 varsayimi kanitlamak.
+  --------------------------------------------------------------------------
+  DOGRULANMIS (ekran goruntusuyle):
+     Sqrt() var       -> 4
+     Log()  var, DOGAL logaritma -> ln(100) = 4.6052
+     (Log tabani zaten onemsiz: kodda Log(Rr)/Log(2) orani kullaniliyor)
+
+  BU TESTTE BAKILACAKLAR: A ve B bloklari kritik, C opsiyonel.
+  ========================================================================== }
+
+
+{ ===== BLOK A - EN KRITIK: VAR (VIDYA) ortalamasi ve PREV baglanmasi =====
+  1. cizgi (vv)  : Mov(C,2,VAR) -> fiyati yakindan takip eden bir egri
+                   olmali. HATA verirse VAR tipinin adi farklidir
+                   (VAR / Var / VIDYA / V). Hata mesajini bana yollayin.
+
+  2. cizgi (tt)  : PREV testi. Beklenen: tt, "bar numarasi - 1" ile
+                   BIREBIR AYNI olmali.
+  3. cizgi (ref) : Cum(1)-1, yani beklenen deger.
+
+     tt ile ref UST USTE binerse -> PREV, atandigi degiskenin gecmisine
+     baglaniyor demektir. OTT ratchet'i calisir, sistem kosullari
+     kendi kendine yeterlidir.
+
+     tt duz 0 kalir veya ref'ten saparsa -> PREV farkli davraniyor.
+     Bu durumda OTT-A'yi kayitli indikator yapip sistemde cagirmak gerekir;
+     bana haber verin, kodu ona gore bolerim.
+  ======================================================================== }
+
+vv:=Mov(C,2,VAR);
+tt:=If(Cum(1)=1,0,PREV+1);
+ref:=Cum(1)-1;
+
+vv;
+tt;
+ref
+
+
+{ ===== BLOK B - RATCHET (OTT'nin kalbi) ==================================
+  Yukaridaki bloku silip bunu deneyin. Sabit opt ile klasik OTT'dir.
+  Fiyati basamak basamak takip eden, hic geri gitmeyen bir merdiven
+  gorunmeli. Duz cizgi veya fiyatin aynisi cikarsa PREV zinciri kopuktur.
+  ======================================================================== }
+
+{
+opt:=1.4;
+C1:=Mov(C,2,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+C1
+}
+
+
+{ ===== BLOK C - OPSIYONEL: hangi fonksiyonlar var? =======================
+  Tek tek deneyin; HATA VERENI bana soyleyin, o kadari yeter.
+  Hepsi calisiyorsa kodu biraz kisaltabilirim (MAD yerine Stdev gibi).
+
+     Stdev(C,20)     -> beklenen: dalgalanan pozitif seri
+     Exp(1)          -> beklenen: duz 2.7183
+     Max(C,Ref(C,-1))-> beklenen: fiyata cok yakin seri
+     Min(C,Ref(C,-1))-> beklenen: fiyata cok yakin seri
+  ======================================================================== }
