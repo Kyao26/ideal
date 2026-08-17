@@ -1,0 +1,18 @@
+kD:=1.0;
+opt:=0.60;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+C1:=Mov(C,per,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(C1,Ott) AND Hrs>Esk;

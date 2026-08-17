@@ -1,0 +1,208 @@
+===============================================================================
+ HURST KAPISI - MOTOR BAGIMSIZ DOZ TESTI | MATRIKS PRIME | TEK DOSYA
+===============================================================================
+ OTT-A ailesi standalone sistem olarak ELENDI. Adil izgaranin en iyi hucresi
+ bile gecmiyor: brut/islem 26.59 (esik 30.4), NET PF 1.26 (esik 1.5), n=17,
+ en iyi 5 cikinca NET -735 p. Ustelik 12 hucreden en iyisini secmek kendisi
+ bir optimizasyondur.
+
+ AYAKTA KALAN TEK SEY: kapinin DOZ-TEPKI iliskisi. Kapi sikilastikca
+ brut/islem dort bagimsiz kurulumun dordunde de monoton artiyor. Bandin
+ boyle bir tepkisi yok.
+
+ BU DOSYA KAPIYI OTT'DEN TAMAMEN KOPARIR.
+
+ DOZ TEK PARAMETREYE INDIRILDI
+   kD:=1.0;   ->   Esk:=0.5+kD*sg     (sg = Hurst'un kendi standart sapmasi)
+     kD=0      ciplak kapi  Hrs>0.5
+     kD=0.447  eski sH (sigma/kok20 - kategori hatali olan)
+     kD=1.0    +sigma, izgaranin en iyisi
+     kD=1.5 / 2.0   HIC DENENMEDI - doz-tepki suruyor mu?
+   kD dogrudan OPT ile taranir.
+
+ UC MOTOR - ILK IKISINDE PREV YOK
+   M1 Donchian kirilim 20/10   PREV yok -> System Tester PREV riski devre disi
+   M2 MA kesisimi 10/30        PREV yok
+   M3 klasik OTT opt=0.60      PREV var
+   Her motor icin kD = 0 / 0.447 / 1.0 / 1.5 / 2.0. Hepsi LONG-ONLY.
+
+ GECME OLCUTU: brut/islem, UC MOTORUN EN AZ IKISINDE kD ile monoton artmali
+ (ya da artip platoya oturmali). Tek motorda gorulen etki o motora ozgudur.
+
+ !!! KRITIK ACIK SORU - IZGARADA OLCULMEDI !!!
+   Kaybedenleri eledikce ortalama MEKANIK olarak yukselir. En iyi hucrede
+   n=17 ve en iyi 5 cikinca -735 p -> ortalama ayni sisman kuyruga biniyor
+   olabilir.
+   Her kD seviyesinde ORTALAMANIN YANI SIRA sunlari da kaydedin:
+       MEDYAN islem | budanmis ortalama (en iyi/kotu %10 atilarak) | kazanma orani
+   Medyan da monoton artiyorsa kapi dagilimin tamamini kaydiriyor = gercek etki.
+   Yalniz ortalama artiyorsa kapi bir KUYRUK SECICIDIR, filtre degil.
+
+ ORNEKLEM UYARISI
+   Doz arttikca n dusuyor: 55->47->27 ve 35->30->17. Etki ile orneklem
+   BIRLIKTE kuculuyor. Ayrica toplam brut monoton DEGIL (optA: -77 -> +885
+   -> +550): kapiyi sH otesine sikmak islem basina degeri artirirken
+   toplamda kaybettiriyor.
+   Bu yuzden doz-tepki 2.5 aylik tek sembolde KAPATILAMAZ. Gereken:
+   daha uzun gecmis, havuzlanmis semboller, veya daha yavas periyot.
+   Hedef: her kD seviyesinde EN AZ 30-50 islem.
+
+ Tam protokol: KAPI_TESTI.md
+===============================================================================
+
+
+===============================================================================
+ BLOK 0 - KAPI DOZ GOSTERGESI (ayri panel)
+-------------------------------------------------------------------------------
+ Cizgiler: Hrs | 0.5 | Esk (ust esik) | Alt (alt esik)
+ kD'yi degistirip esiklerin Hrs'ye gore nerede durdugunu ONCE GORUN.
+------------------------------- KOPYALA ---------------------------------------
+
+kD:=1.0;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+Alt:=0.5-kD*sg;
+Sfr:=Hrs*0+0.5;
+Hrs;Sfr;Esk;Alt;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ MOTOR 1 - DONCHIAN KIRILIM 20/10   (PREV YOK)
+-------------------------------------------------------------------------------
+ Kapisiz referans icin son satirdan " AND Hrs>Esk" kismini silin.
+--------------------------- M1 - AL - KOPYALA ---------------------------------
+
+kD:=1.0;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+Cross(C,Ref(HHV(H,20),-1)) AND Hrs>Esk;
+
+--------------------------- M1 - SAT - KOPYALA --------------------------------
+
+kD:=1.0;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+Cross(Ref(LLV(L,10),-1),C) OR Hrs<0.5-kD*sg;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ MOTOR 2 - MA KESISIMI 10/30   (PREV YOK)
+--------------------------- M2 - AL - KOPYALA ---------------------------------
+
+kD:=1.0;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+Cross(Mov(C,10,S),Mov(C,30,S)) AND Hrs>Esk;
+
+--------------------------- M2 - SAT - KOPYALA --------------------------------
+
+kD:=1.0;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+Cross(Mov(C,30,S),Mov(C,10,S)) OR Hrs<0.5-kD*sg;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ MOTOR 3 - KLASIK OTT sabit opt=0.60   (PREV VAR)
+--------------------------- M3 - AL - KOPYALA ---------------------------------
+
+kD:=1.0;
+opt:=0.60;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+C1:=Mov(C,per,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(C1,Ott) AND Hrs>Esk;
+
+--------------------------- M3 - SAT - KOPYALA --------------------------------
+
+kD:=1.0;
+opt:=0.60;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Hm:=Sum(Hrs,20)/20;
+sg:=1.2533*Sum(Abs(Hrs-Hm),20)/20;
+Esk:=0.5+kD*sg;
+C1:=Mov(C,per,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(Ott,C1) OR Hrs<0.5-kD*sg;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ KARAR TABLOSU
+-------------------------------------------------------------------------------
+ Test1 gecer + medyan da artar : Kapi gercek bir filtre. URUN BUDUR;
+                                 motor secimi ayri ve bagimsiz is.
+ Test1 gecer + yalniz ortalama : Kapi kuyruk secici. Kullanilabilir ama
+                                 "filtre" denemez, yogunlasma riski tasir.
+ Test1 kalir                   : Hat kapanir, doz-tepki OTT-A'ya ozguymus.
+
+ kD'yi kar maksimize edecek sekilde secmek testi GECERSIZ kilar.
+===============================================================================
