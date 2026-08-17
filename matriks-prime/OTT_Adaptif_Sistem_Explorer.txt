@@ -3,23 +3,40 @@
   MATRIKS PRIME
   Tasarim 1 (adaptif opt) + Tasarim 3 (rejim anahtari)
   --------------------------------------------------------------------------
-  REJIM ANAHTARI - sistem yonunu grafigin karakterine gore tayin eder:
-      Hrs > 0.5 + sH  -> kalici/trendli  -> OTT yonu uygulanir
-      Hrs < 0.5 - sH  -> salinimli       -> YON ALINMAZ (flat)
+  !!! BU DOSYA HENUZ DOGRULANMADI !!!
 
-  0.5 keyfi bir esik degil, rastgele yuruyusun tam kendisidir: trend
-  takibinin beklenen degeri ancak seri kaliciysa pozitiftir.
-  sH ise tahmincinin BIR STANDART HATASIDIR (ortalama mutlak sapmadan
-  turetilir: MAD -> sigma -> /karekok(20)). Sinirda mod atmasini engeller;
-  ayarlanabilir bir sayi degildir.
+  Sozdizimi testleri INDICATOR BUILDER'da yapildi. Orada dogrulanan iki sey
+  (PREV'in atandigi degiskene baglanmasi + "a;b;c;" cikti yazimi) System
+  Tester ve Explorer icin GECERLI DEGILDIR; bu modullerin kurallari farkli.
 
-  PREV HAKKINDA
-  Kosullar kendi kendine yeterlidir: ratchet "Ott:=" degiskenine atanir ve
-  PREV o degiskenin onceki degerine baglanir. Surumunuzde PREV kosulun kendi
-  gecmisine baglanir ve ratchet bozulursa, v1'i KAYITLI INDIKATOR olarak
-  olusturup System Tester icinden o indikatoru cagirin.
+  Ozellikle acik olan risk: PREV koşul içinde neye baglanir? Indicator
+  Builder'daki gibi degiskene baglanmazsa asagidaki ratchet bozulur ve
+  sistem sacma sinyal uretir - ama HATA VERMEZ, sessizce yanlis calisir.
+  Bu yuzden once YOL 1 denenmelidir.
 
-  Kullanilan fonksiyonlar: Mov(...,VAR) Ref HHV LLV Sum Abs Log If Cum Cross PREV
+  --------------------------------------------------------------------------
+  YOL 1 (GUVENLI - once bunu deneyin)
+    1. OTT_Adaptif_v1_OptAdaptif.txt'i Indicator Builder'da olusturup KAYDEDIN
+       (orasi dogrulanmis ortam, ratchet'in dogru calistigini biliyoruz).
+    2. System Tester'da o kayitli indikatoru cagirin; AL/SAT kosulunu
+       indikatorun iki cizgisinin kesisimi olarak kurun:
+           AL  : destek cizgisi (C1) yukari keser OTT-A'yi
+           SAT : OTT-A yukari keser destek cizgisini (C1)
+    3. Cagirma sozdizimini bilmiyorum; kendi surumunuzde formul/indikator
+       secme menusunden ekleyin ve nasil yazildigini bana bildirin - kalici
+       olarak CLAUDE.md'ye islerim.
+
+  YOL 2 (KENDI KENDINE YETERLI - ancak PREV kosul icinde de degiskene
+         baglaniyorsa dogru calisir)
+    Asagidaki AL/SAT bloklarini dogrudan yapistirin.
+    DOGRULAMA: ayni sembolde Indicator Builder'daki OTT-A grafigini acin ve
+    sistemin verdigi AL/SAT oklarinin, grafikteki kesisimlerle AYNI BARLARDA
+    olup olmadigini gozle karsilastirin. Kaymiyorsa PREV burada da dogru
+    calisiyor demektir.
+
+  NOT: Satir sonlarindaki ";" Indicator Builder kuralidir. System Tester
+  farkli istiyorsa (or. tek ifade, noktali virgulsuz) son satirdaki ";"
+  isaretini kaldirin.
   ========================================================================== }
 
 

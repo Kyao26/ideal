@@ -227,7 +227,13 @@ Yani formüller artık sadece şu kümeye dayanıyor: `Mov(...,VAR)`, `Ref`, `HH
   bölmeye gerek yok.
 
 **Çıktı yazımı:** çizgiler tek satırda, `;` ile ayrılır, satır `;` ile biter:
-`Ott;C1;` — tüm formüller bu kurala göre yazıldı.
+`Ott;C1;` — tüm indikatör formülleri bu kurala göre yazıldı.
+
+> ⚠️ **Bu doğrulamaların kapsamı yalnızca Indicator Builder'dır.** System Tester ve
+> Explorer'ın yazım kuralları farklıdır ve henüz doğrulanmamıştır — `PREV`'in koşul
+> içinde neye bağlandığı dahil. Sistem tarafı için güvenli yol, mantığı Indicator
+> Builder'da kurup kaydetmek ve System Tester'ın o kayıtlı indikatörü çağırmasıdır;
+> ayrıntı `OTT_Adaptif_Sistem_Explorer.txt` başlığında.
 
 > **OTT zorunlu değil.** Ratchet motoru olarak OTT seçildi çünkü bu lehçede çalıştığı
 > kanıtlanmış tek `PREV` kalıbı o. Karakter ölçüm katmanı (D → H → σ_R → opt) motordan
@@ -246,10 +252,11 @@ Tasarımı doğrudan şekillendirdikleri için açıkça yazıyorum:
    kodlanmamasının sebebi budur.
 3. **Değişken periyot yok.** `Mov(C, per, VAR)` sabit periyot ister → T2'de banka + `If`
    seçimi.
-4. **Sistem/Explorer'da PREV sorunu.** AL/SAT koşulunun içine OTT'yi doğrudan gömerseniz
-   `PREV` koşulun kendi geçmişine bağlanır ve ratchet bozulur. Doğru yol: OTT-A'yı
-   **kayıtlı indikatör** olarak oluşturup System Tester / Explorer içinde o kayıtlı
-   indikatörü çağırmaktır. Kod dosyalarında bu iki kullanım ayrı ayrı belirtildi.
+4. **Sistem/Explorer'da PREV sorunu — açık risk.** `PREV`'in koşul içinde neye
+   bağlandığı doğrulanmadı. Indicator Builder'daki gibi değişkene bağlanmazsa ratchet
+   bozulur ve sistem **hata vermeden** yanlış sinyal üretir. Bu yüzden güvenli yol,
+   OTT-A'yı kayıtlı indikatör olarak oluşturup System Tester / Explorer içinde onu
+   çağırmaktır. Kod dosyasında iki yol da yazılı.
 
 ---
 
