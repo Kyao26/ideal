@@ -1,46 +1,4 @@
-{ ==========================================================================
-  OTT-A | SISTEM (System Tester) ve TARAMA (Explorer) KOSULLARI
-  MATRIKS PRIME
-  Tasarim 1 (adaptif opt) + Tasarim 3 (rejim anahtari)
-  --------------------------------------------------------------------------
-  !!! BU DOSYA HENUZ DOGRULANMADI !!!
-
-  Sozdizimi testleri INDICATOR BUILDER'da yapildi. Orada dogrulanan iki sey
-  (PREV'in atandigi degiskene baglanmasi + "a;b;c;" cikti yazimi) System
-  Tester ve Explorer icin GECERLI DEGILDIR; bu modullerin kurallari farkli.
-
-  Ozellikle acik olan risk: PREV koşul içinde neye baglanir? Indicator
-  Builder'daki gibi degiskene baglanmazsa asagidaki ratchet bozulur ve
-  sistem sacma sinyal uretir - ama HATA VERMEZ, sessizce yanlis calisir.
-  Bu yuzden once YOL 1 denenmelidir.
-
-  --------------------------------------------------------------------------
-  YOL 1 (GUVENLI - once bunu deneyin)
-    1. OTT_Adaptif_v1_OptAdaptif.txt'i Indicator Builder'da olusturup KAYDEDIN
-       (orasi dogrulanmis ortam, ratchet'in dogru calistigini biliyoruz).
-    2. System Tester'da o kayitli indikatoru cagirin; AL/SAT kosulunu
-       indikatorun iki cizgisinin kesisimi olarak kurun:
-           AL  : destek cizgisi (C1) yukari keser OTT-A'yi
-           SAT : OTT-A yukari keser destek cizgisini (C1)
-    3. Cagirma sozdizimini bilmiyorum; kendi surumunuzde formul/indikator
-       secme menusunden ekleyin ve nasil yazildigini bana bildirin - kalici
-       olarak CLAUDE.md'ye islerim.
-
-  YOL 2 (KENDI KENDINE YETERLI - ancak PREV kosul icinde de degiskene
-         baglaniyorsa dogru calisir)
-    Asagidaki AL/SAT bloklarini dogrudan yapistirin.
-    DOGRULAMA: ayni sembolde Indicator Builder'daki OTT-A grafigini acin ve
-    sistemin verdigi AL/SAT oklarinin, grafikteki kesisimlerle AYNI BARLARDA
-    olup olmadigini gozle karsilastirin. Kaymiyorsa PREV burada da dogru
-    calisiyor demektir.
-
-  NOT: Satir sonlarindaki ";" Indicator Builder kuralidir. System Tester
-  farkli istiyorsa (or. tek ifade, noktali virgulsuz) son satirdaki ";"
-  isaretini kaldirin.
-  ========================================================================== }
-
-
-{ ================== AL KOSULU ============================================= }
+AL KOSULU
 
 per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
@@ -50,24 +8,19 @@ Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;   { 4.4721 = karekok(20), literal yazildi }
-
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(C1,Ott) AND Hrs>0.5;
 
-Cross(C1,Ott) AND Hrs>0.5+sH;
 
-
-{ ================== SAT KOSULU ============================================ }
+SAT KOSULU
 
 per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
@@ -77,29 +30,13 @@ Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;   { 4.4721 = karekok(20), literal yazildi }
-
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
-Cross(Ott,C1) OR Hrs<0.5-sH;
-
-
-{ ================== EXPLORER / TARAMA ====================================
-  FILTRE  : yukaridaki AL kosulunun aynisi
-  KOLON 1 : Hrs   -> sembolun rejimi
-  KOLON 2 : optA  -> sistemin o sembol icin sectigi bant yuzdesi
-  KOLON 3 : Ott   -> takip eden stop seviyesi
-
-  Boylece tarama sadece "sinyal var" demez; hangi hissenin hangi karakterde
-  oldugunu da gosterir.
-  ======================================================================== }
+Cross(Ott,C1) OR Hrs<0.5;

@@ -1,53 +1,64 @@
 ===============================================================================
- OTT-A | KARAKTER UYARLAMALI OTT  -  MATRIKS PRIME  -  TEK DOSYA
+ OTT-A | MATRIKS PRIME | TEK DOSYA
 ===============================================================================
- Icindekiler (her blok ayri ayri kopyalanir):
+ DURUM: OLCULDU - KENAR (EDGE) GOSTERILEMEDI. Uretimde kullanmayin.
 
-   BLOK 1 : KARAKTER GOSTERGESI  (teshis - ILK BUNU KURUN)
-   BLOK 2 : OTT-A v1   opt adaptif, per sabit      <- ana surum
-   BLOK 3 : OTT-A v2   per + opt birlikte adaptif  <- v1 oturduktan sonra
-   BLOK 4 : SISTEM AL / SAT kosullari              <- DOGRULANMADI, notu okuyun
+ Bagimsiz olcum (X30YVADE, ~2.5 ay, komisyon binde 0.8/tur, kayma 2 p/tur):
+   BLOK 4 aynen ....... 43-47 islem | brut 18.83 p | NET +3.61 p | PF 1.13
+   Kapi kapali ........ 134 islem   | brut -7.30  | NET -22.47   | PF 0.61
+   v2 (BLOK 3) ........ 133 islem   | brut  5.08  | NET -10.10   | PF 0.64
+   SHORT tarafi ....... 42 islem    | brut -9.53  | NET -24.79   | PF 0.28
 
- NE YAPIYOR
-   OTT'nin elle atanan opt parametreleri sabit sayi olmaktan cikip her bar
-   grafigin olculen karakterinden turetiliyor:
+ UC KRITIK BULGU
+   1. Kar yogunlasmasi: NET +170 p, 47 islem, en iyi islem +670 p.
+      O tek islem cikarilirsa -500 p. Kari 1/47 islem tasiyor. Kenar yok.
+   2. Adaptif optA, sabit degerleri gecmiyor. Sabit 0.40 (NET +7.95) ve
+      0.60 (+7.10) adaptif olandan (+3.61) iyi. Ustelik siralama monoton
+      degil -> 20-70 islemlik orneklemde hicbiri ayirt edilebilir degil.
+   3. Olcek hatasi: optA medyani 0.278, klasik OTT degeri 1.4 -> 5 kat
+      asagida, sistematik. Teshis blogundaki optH bunu duzeltmeyi test eder.
 
-     Rr   = fraktal olcek orani (Ehlers menzil-ikiye-katlama)
-     Hrs  = 2 - log2(Rr)          -> Hurst usteli, kaliciik olcusu
-     SgR  = (C-C1)/C artiginin oynakligi -> gurultu genligi
-     optA = 100 * SgR / Hrs       -> bant yuzdesi
+ DEGERI OLCULEN TEK BILESEN: HURST REJIM KAPISI.
+   98 islemi eledi, elenenlerin ortalamasi -35 p. Deger "adaptif optA"
+   bulusunda degil, bu kapida.
 
-   Trendli grafikte (Hrs buyuk) bant DARALIR, testere grafikte GENISLER.
-   Elle konmus, backtest'e gore secilmis hicbir carpan yoktur.
+ BILINEN MIMARI BOSLUK
+   Hrs KALICILIK olcer, YON olcmez. Bu yuzden short tarafi secilemiyor
+   (PF 0.28). Short bloklari BILEREK verilmedi; yon olcen bir bilesen
+   eklenmeden short acilmamalidir.
 
- DOGRULANMIS SOZDIZIMI (Indicator Builder'da test edildi)
-   Mov(C,2,VAR) calisiyor      | PREV atandigi degiskenin gecmisine baglanir
-   Cikti yazimi: Ott;C1;       | tek satir, ; ile ayrik, sonda ;
-   Sqr ve Log kullanilmiyor    | belirsizliklerinden bagimsiz kalindi
+ SERBEST SABIT SAYIMI (onceki surumdeki "hicbir carpan yok" iddiasi YANLISTI)
+   Yapisal/turetilmis : 200 (OTT tanimi) - Ref(,-2) (OTT tanimi) -
+                        1.2533 (=kok(pi/2)) - 100 (=200/2) -
+                        pB esikleri (FRAMA eslemesinden ters cozum) -
+                        0.5 (rastgele yuruyus)
+   SERBEST (~8 adet)  : 10 / 20 fraktal pencereler - SgR penceresi 20 -
+                        Rr kirpma [1,4] - Hrs kirpma [0.2,0.9] -
+                        optA kirpma [0.05,10] - per=2 - banka araligi
+   Bunlar OPT taramasiyla GORULEMEZ. Yani OPT kaldirilmadi, olculebilir
+   yerden olculemez yere tasindi.
 
- DIKKAT
-   Matriks'te H = Yuksek, L = Dusuk. Hurst usteli bu yuzden "Hrs" adini
-   tasiyor; kodda "H" adini degisken olarak KULLANMAYIN.
+ SOZDIZIMI KURALLARI (kullanici tarafindan dogrulandi)
+   - Bir degiskene tek atama. Ham/nihai ayri isim: Rr0->Rr, Hr0->Hrs, op0->optA
+   - Cikti satiri: seriler tek satirda, ; ile ayrik, sonda ;
+   - Ciplak sabit sayi cikti olamaz -> Sfr:=Hrs*0+0.5;
+   - Kod bloklarinda { } yorum YOK, cok satira yayilan atama YOK
+   - Matriks'te H=Yuksek, L=Dusuk. Hurst = Hrs.
 ===============================================================================
 
 
-
 ===============================================================================
- BLOK 1 - KARAKTER GOSTERGESI  (ayri panelde calistirin)
+ BLOK 1 - KARAKTER GOSTERGESI (teshis, ayri panel)
 -------------------------------------------------------------------------------
- Sinyal uretmez. Sistemin grafikten NE OKUDUGUNU gosterir.
-   1. cizgi Hrs   : 0.5 ustu = trend rejimi, alti = salinim
-   2. cizgi 0.5   : rastgele yuruyus referansi
-   3. cizgi optA  : sistemin sectigi bant yuzdesi
-   4. cizgi pB    : sistemin sectigi periyot (v2 mantigi)
+ Cizgiler: Hrs | Sfr(0.5) | optA | optH | pB
 
- NEYE BAKILACAK
-   - Hrs cogunlukla 0.3 - 0.7 arasinda gezinmeli. Surekli 0.2 / 0.9
-     kelepcesinde takiliysa olcum penceresi bu sembole uygun degil.
-   - optA, elle kullandiginiz sabit opt degerinin etrafinda bir bantta
-     olmali. Sistematik olarak uzaksa CARPAN EKLEMEYIN - SgR penceresini
-     gozden gecirin. Carpan eklemek optimizasyona geri donustur.
-   - pB her bar zipliyorsa v2'ye gecmeyin, v1'de kalin.
+ optH = optA * kok(pB) -> ufuk duzeltmeli optA. Eksik olan carpan buydu:
+ SgR, 2 periyotluk VIDYA'ya gore 1 BARLIK takip hatasini olcuyor; oysa
+ bandin korumasi gereken sey elde tutma ufku boyunca birikmis geri
+ cekilme. R/S yasasi: N barlik sapma = 1 barlik sapma * N^H. N=pB ve
+ H=0.5 alindiginda carpan kok(pB) olur.
+ BEKLENEN: optH medyani ~1.1-1.5, yani sizin klasik 1.4'unuze yakin.
+ BU BIR HIPOTEZ - once bunu olcun, dogrulanmadan uretime almayin.
 ------------------------------- KOPYALA ---------------------------------------
 
 N1:=(HHV(H,10)-LLV(L,10))/10;
@@ -55,79 +66,60 @@ N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
 Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
-
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-
 pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
-
 C1:=Mov(C,2,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
-{ Ciplak sayi cikti olarak yazilamaz; 0.5 referansi seriye cevriliyor }
+kH:=If(pB=2,1.4142,If(pB=3,1.7321,If(pB=5,2.2361,If(pB=8,2.8284,If(pB=13,3.6056,4.5826)))));
+optH:=optA*kH;
 Sfr:=Hrs*0+0.5;
-
-Hrs;Sfr;optA;pB;
+Hrs;Sfr;optA;optH;pB;
 
 ------------------------------ BURAYA KADAR -----------------------------------
 
 
-
 ===============================================================================
- BLOK 2 - OTT-A v1   (opt adaptif, per = 2 sabit)   <- ANA SURUM
+ BLOK 2 - OTT-A v1 (opt adaptif, per=2)
 -------------------------------------------------------------------------------
- Fiyat paneline ekleyin. Iki cizgi cizer:
-   1. cizgi Ott : takip eden ratchet (stop) cizgisi
-   2. cizgi C1  : destek cizgisi (VAR ortalamasi)
- AL yonu  : C1 yukari keser Ott'yi
- SAT yonu : Ott yukari keser C1'i
-
- Klasik OTT (per=2, opt=1.4) ile AYNI grafige koyup karsilastirin.
+ Rr kirpmasi eklendi (onceki surumde bu blokta eksikti).
+ optH duzeltmesi BILEREK bu bloga konmadi - once BLOK 1'de olculmeli.
 ------------------------------- KOPYALA ---------------------------------------
 
 per:=2;
-
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
-
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
 Ott;C1;
 
 ------------------------------ BURAYA KADAR -----------------------------------
 
 
-
 ===============================================================================
- BLOK 3 - OTT-A v2   (per + opt birlikte adaptif)
+ BLOK 3 - OTT-A v2 (per + opt adaptif)   [DUSURULDU]
 -------------------------------------------------------------------------------
- v1 oturduktan SONRA deneyin.
- Periyot, fraktal olcek oranindan {2,3,5,8,13,21} bankasina yuvarlanir.
- Esikler komsu uyelerin geometrik ortalamasinin Rr karsiligidir - secilmis
- degil, bankadan turemistir. Rr buyudukce (grafik testereleserek) periyot
- UZAR, yani ortalama yavaslar.
-
- Banka gerekli cunku Mov(C,per,VAR) periyodu SABIT olmak zorunda; seri
- veremezsiniz. Bu yuzden 6 sabit ortalama hesaplanip If ile secilir.
+ Olcum: v1'den KOTU (NET -10.10 vs +3.61). pB dagilimi %55.9 per=21,
+ sadece %5.1 per=2. Yani v2, "oturmus v1'in gelismisi" degil; D->L
+ eslemesi bu enstruman/periyot icin yanlis olceklenmis bambaska bir
+ sistem. Merak icin birakildi, tavsiye edilmiyor.
+ C1 atamasi tek satira indirildi (cok satirli atama kurala aykiriydi).
 ------------------------------- KOPYALA ---------------------------------------
 
 N1:=(HHV(H,10)-LLV(L,10))/10;
@@ -135,59 +127,34 @@ N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
 Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
-
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-
 pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
-
-C1:=If(pB=2,Mov(C,2,VAR),
-    If(pB=3,Mov(C,3,VAR),
-    If(pB=5,Mov(C,5,VAR),
-    If(pB=8,Mov(C,8,VAR),
-    If(pB=13,Mov(C,13,VAR),Mov(C,21,VAR))))));
-
+C1:=If(pB=2,Mov(C,2,VAR),If(pB=3,Mov(C,3,VAR),If(pB=5,Mov(C,5,VAR),If(pB=8,Mov(C,8,VAR),If(pB=13,Mov(C,13,VAR),Mov(C,21,VAR))))));
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
 Ott;C1;
 
 ------------------------------ BURAYA KADAR -----------------------------------
 
 
-
 ===============================================================================
- BLOK 4 - SISTEM AL / SAT KOSULLARI
+ BLOK 4 - SISTEM AL / SAT
 -------------------------------------------------------------------------------
- !!! BU BLOK DOGRULANMADI !!!
- Sozdizimi testleri INDICATOR BUILDER'da yapildi. Orada dogrulanan iki sey
- (PREV'in atandigi degiskene baglanmasi ve "a;b;c;" cikti yazimi) System
- Tester icin GECERLI DEGILDIR.
+ sH KALDIRILDI. Kategori hatasiydi: ortalamanin standart hatasi (sigma/kok20)
+ tekil gozleme uygulanmisti. Olcum de zaten kapinin fiilen Hrs>0.5 oldugunu
+ gosterdi (gecis %42.7 vs %48.4). Artik acikca Hrs>0.5 yaziyor.
+ Histerezis isteniyorsa dogru olcek sigma'nin kendisidir, sigma/kok(n) degil -
+ ama once o bandin gerekli oldugu gosterilmelidir.
 
- ACIK RISK: PREV kosul icinde farkli baglanirsa ratchet bozulur ve sistem
- HATA VERMEDEN, sessizce yanlis sinyal uretir. Derlenmesi dogru calistigi
- anlamina gelmez.
-
- DOGRULAMASI: ayni sembolde BLOK 2'yi grafige koyun. Sistemin verdigi AL/SAT
- oklari, grafikteki kesisimlerle AYNI BARLARDA mi? Kaymiyorsa PREV burada da
- dogru calisiyordur.
-
- KAYMIYORSA / SACMALIYORSA: BLOK 2'yi kayitli indikator yapip System Tester
- icinden onu cagirin, kosulu iki cizginin kesisimi olarak kurun.
-
- Satir sonundaki ";" Indicator Builder kuralidir; System Tester farkli
- istiyorsa kaldirin.
-
- REJIM ANAHTARI (yon tayini): Hrs > 0.5 + sH ise trend rejimi -> yon alinir.
- Hrs < 0.5 - sH ise salinim rejimi -> YON ALINMAZ. 0.5 keyfi degil, rastgele
- yuruyusun kendisidir. sH tahmincinin bir standart hatasidir, ayar degildir.
+ EKSIK (bilerek): saat filtresi ve seans sonu duzleme yok. VIOP icin zorunlu.
+ Prime'da saat/seans fonksiyonunun adini bilmiyorum; soylerseniz eklerim.
 --------------------------- AL KOSULU - KOPYALA -------------------------------
 
 per:=2;
@@ -198,21 +165,16 @@ Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;
-
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
-Cross(C1,Ott) AND Hrs>0.5+sH;
+Cross(C1,Ott) AND Hrs>0.5;
 
 -------------------------- SAT KOSULU - KOPYALA -------------------------------
 
@@ -224,34 +186,15 @@ Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;
-
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
-Cross(Ott,C1) OR Hrs<0.5-sH;
+Cross(Ott,C1) OR Hrs<0.5;
 
 ------------------------------ BURAYA KADAR -----------------------------------
-
-
-
-===============================================================================
- EXPLORER / TARAMA
--------------------------------------------------------------------------------
- FILTRE  : yukaridaki AL kosulunun aynisi
- KOLON 1 : Hrs   -> sembolun rejimi
- KOLON 2 : optA  -> sistemin o sembol icin sectigi bant yuzdesi
- KOLON 3 : Ott   -> takip eden stop seviyesi
-
- Boylece tarama sadece "sinyal var" demez; hangi hissenin hangi karakterde
- oldugunu da gosterir.
-===============================================================================

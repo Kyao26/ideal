@@ -1,43 +1,18 @@
-{ ==========================================================================
-  OTT-A | KARAKTER GOSTERGESI (teshis paneli)
-  MATRIKS PRIME  -  ayri panelde calistirin
-  --------------------------------------------------------------------------
-  ILK BUNU KURUN. Sinyal uretmez; sistemin grafikten NE OKUDUGUNU gosterir:
-
-    1. cizgi : Hrs   (Hurst usteli)  -> 0.5 ustu = trend, alti = salinim
-    2. cizgi : 0.5   (rastgele yuruyus referansi)
-    3. cizgi : optA  (sistemin sectigi bant yuzdesi)
-    4. cizgi : pB    (sistemin sectigi periyot - v2 mantigi)
-
-  NEYE BAKMALI
-  - Hrs cogunlukla 0.3-0.7 arasinda gezmeli. Surekli kelepcede (0.2 / 0.9)
-    takiliyorsa olcum penceresi bu sembol icin uygun degildir.
-  - optA, elle kullandiginiz sabit opt degerinin etrafinda bir bantta
-    gezinmeli. Sistematik olarak uzaksa CARPAN EKLEMEYIN; SgR'nin penceresini
-    gozden gecirin. Carpan eklemek optimizasyona geri donustur.
-  - pB her bar zipliyorsa v2'ye gecmeyin, v1'de kalin.
-  ========================================================================== }
-
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
 Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
-
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-
 pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
-
 C1:=Mov(C,2,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 op0:=100*SgR/Hrs;
 optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
-
-{ Cikti yazimi: cizgiler tek satirda, ; ile ayrilir, satir ; ile biter }
-{ Ciplak sayi cikti olarak yazilamaz; 0.5 referansi seriye cevriliyor }
+kH:=If(pB=2,1.4142,If(pB=3,1.7321,If(pB=5,2.2361,If(pB=8,2.8284,If(pB=13,3.6056,4.5826)))));
+optH:=optA*kH;
 Sfr:=Hrs*0+0.5;
-
-Hrs;Sfr;optA;pB;
+Hrs;Sfr;optA;optH;pB;

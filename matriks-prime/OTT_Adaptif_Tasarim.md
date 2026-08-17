@@ -1,9 +1,87 @@
 # OTT-A — Karakter Uyarlamalı OTT (Matriks Prime)
 
-> **Amaç:** OTT'yi kaldırmak değil, OTT'ye elle atadığımız **1 veya 2 opt parametresini**
-> (yüzde ve periyot) sabit sayı olmaktan çıkarıp, canlı grafiğin ölçülen karakterinden
-> matematiksel olarak türetmek. Sistem böylece yönünü, o anki grafiğin fraktal ve
-> oynaklık karakterine göre kendisi tayin eder.
+> ## ⛔ HÜKÜM: KENAR GÖSTERİLEMEDİ — ÜRETİMDE KULLANMAYIN
+>
+> Bağımsız ölçüm (X30YVADE, ~2.5 ay, komisyon binde 0.8/tur, kayma 2 p/tur):
+>
+> | Kurulum | İşlem | Brüt/işlem | Net/işlem | Net PF |
+> |---|--:|--:|--:|--:|
+> | Sistem aynen | 43–47 | 18.83 p | **+3.61** | 1.13 |
+> | Rejim kapısı kapalı | 134 | −7.30 | −22.47 | 0.61 |
+> | v2 | 133 | 5.08 | −10.10 | 0.64 |
+> | Short tarafı | 42 | −9.53 | −24.79 | **0.28** |
+>
+> **Üç bulgu tasarımı düşürüyor:**
+>
+> 1. **Kâr yoğunlaşması.** Net +170 p, 47 işlem, en iyi işlem +670 p. O tek işlem
+>    çıkarılırsa −500 p. Kârı **1/47** işlem taşıyor. Kabul kriteri "en iyi 5 çıkınca
+>    hâlâ pozitif" — burada en iyi 1 çıkınca batıyor.
+> 2. **Adaptif `optA` sabitleri geçmiyor.** Sabit 0.40 (+7.95) ve 0.60 (+7.10),
+>    adaptiften (+3.61) iyi. Sıralama monoton değil (0.10 iyi → 0.20 kötü → 0.40 iyi)
+>    → bu örneklemde hiçbiri ayırt edilebilir değil. Adaptif katman karmaşıklığını
+>    hak etmiyor; orta bantta bir sabite denk düşüyor.
+> 3. **Ölçek hatası.** `optA` medyanı 0.278, klasik OTT değeri 1.4 → 5 kat aşağıda,
+>    sistematik. Dokümanın kendi teşhis talimatı ("çarpan ekleme, SgR penceresini
+>    gözden geçir") uygulanmamıştı. Kök neden §2.4'te.
+>
+> **Ölçülen değeri olan tek bileşen: Hurst rejim kapısı.** 98 işlemi eledi, elenenlerin
+> ortalaması −35 p. Değer "adaptif opt" buluşunda değil, bu kapıda.
+>
+> **Mimari boşluk:** `Hrs` kalıcılık ölçer, **yön ölçmez**. Bu yüzden short tarafı
+> seçilemiyor (PF 0.28). Short blokları bilerek verilmedi.
+
+---
+
+## 0. Serbest sabit muhasebesi
+
+Bu dokümanın önceki sürümü **"elle konmuş hiçbir çarpan yoktur"** diyordu. **Bu iddia
+yanlıştı.** Doğru döküm:
+
+| Sabit | Kaynak | Sınıf |
+|---|---|---|
+| 200 (bant böleni), `Ref(...,−2)` | OTT tanımı | miras |
+| 1.2533 = √(π/2) | MAD → σ dönüşümü | matematiksel |
+| 100 = 200/2 | `z = 1/(2H)` türetiminden | türetilmiş |
+| pB eşikleri 2.171 … 2.774 | FRAMA eşlemesinden ters çözüm | türetilmiş (beşi de bağımsız doğrulandı) |
+| 0.5 rejim eşiği | rastgele yürüyüş | teorik |
+| −4.6 (FRAMA katsayısı) | Ehlers | miras |
+| **10 / 20 fraktal pencereler** | — | **SERBEST** |
+| **20 — SgR penceresi** | — | **SERBEST** |
+| **Rr kırpma [1, 4]** | — | **SERBEST** |
+| **Hrs kırpma [0.2, 0.9]** | — | **SERBEST** |
+| **optA kırpma [0.05, 10]** | — | **SERBEST** |
+| **per = 2** | — | **SERBEST** |
+| **banka aralığı {2…21}** | — | **SERBEST** |
+
+Yaklaşık **8 serbest sabit**. Ve asıl kusur sayıları değil yerleri: bunlar OPT
+taramasıyla **görülemez**. OPT kaldırılmadı — ölçülebilir yerden ölçülemez yere taşındı.
+Bu iyileştirme değil, gizlemedir.
+
+---
+
+## 2.4 Ölçek hatasının kök nedeni (5 kat sapma)
+
+`SgR`, `(C − C1)/C` artığının oynaklığıdır ve `C1 = Mov(C,2,VAR)` çok hızlı bir
+ortalamadır. Yani ölçülen şey **1 barlık takip hatası**. Oysa bandın koruması gereken
+şey, pozisyon elde tutulurken **ufuk boyunca birikmiş** geri çekilmedir.
+
+R/S ölçekleme yasası: N barlık sapma = 1 barlık sapma × N^H.
+
+Ölçülen sapma 1.4 / 0.278 = **5.04 kat**. Bunu kapatan ufuk: H=0.5 için N ≈ 25 bar.
+`pB` dağılımının medyanı 21 olduğuna göre (ölçüldü: %55.9'u per=21), `N = pB` almak
+doğal ve **yeni serbest sabit gerektirmiyor**:
+
+| H | √pB çarpanı (pB=21) | düzeltilmiş optA |
+|---|--:|--:|
+| 0.45 | 3.94 | 1.09 |
+| 0.50 | 4.58 | 1.27 |
+| 0.55 | 5.34 | 1.48 |
+
+Klasik 1.4 tam bu aralıkta. Teşhis göstergesine `optH = optA · √pB` olarak eklendi.
+
+> **Ama bu düzeltme kenar yaratmaz.** Yalnızca sistematik sapmayı kaldırır. Yukarıdaki
+> hükümdeki üç bulgu (kâr yoğunlaşması, ayırt edilemezlik, short boşluğu) aynen ayakta.
+> Bu yüzden `optH` **yalnızca teşhis bloğunda**; ölçülmeden üretim koduna alınmadı.
 
 ---
 
@@ -105,7 +183,8 @@ dönüşünü yutmamalı. H bu ikisinin oranını ölçer:
 | Salınımlı / testere | 0.3 | 1.67 | **Genişler** — kırılımların çoğu sahte, dokunma |
 
 Bandın *seviyesi* σ_R'den (ölçülen gürültü), *modülasyonu* H'den (ölçülen kalıcılık)
-gelir. Formülde elle konmuş çarpan yoktur.
+gelir. **Not:** bu satırın önceki hali "formülde elle konmuş çarpan yoktur" diyordu;
+yanlıştı — §0'daki döküme bakın. Ayrıca σ_R'nin ölçek hatası §2.4'te.
 
 - ➕ Tek satırlık değişiklik; mevcut OTT alışkanlığınızı bozmaz.
 - ➕ Sembolden sembole, periyottan periyoda kendi kendine ölçeklenir; hisse başına

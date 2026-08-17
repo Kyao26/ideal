@@ -1,55 +1,18 @@
-{ ==========================================================================
-  OTT-A v1  |  KARAKTER UYARLAMALI OTT  -  Tasarim 1
-  MATRIKS PRIME  (klasik Matriks formul dili - Matriks IQ dili DEGIL)
-  --------------------------------------------------------------------------
-  KULLANILAN FONKSIYONLAR (bilerek dar tutuldu):
-      C H L   Mov(...,VAR)   Ref()   HHV()   LLV()   Sum()   Abs()
-      Log()   If()   Cum()   PREV
-  Stdev / Exp / Sqr / Max / Min KULLANILMADI - adlari ve anlamlari surumden
-  degisebildigi icin hepsi Sum+Abs ile yeniden yazildi.
-
-  per sabit (2, klasik OTT degeri), opt HER BAR grafigin karakterinden
-  turetilir:        opt = 100 * sigmaR / Hrs
-      sigmaR : (C-C1)/C artiginin oynakligi   -> gurultu genligi
-      Hrs    : Hurst usteli (2 - fraktal boyut) -> kaliciik olcusu
-  Trendli grafikte bant DARALIR, testere grafikte GENISLER.
-
-  DIKKAT: Matriks'te H = Yuksek, L = Dusuk. Hurst usteli bu yuzden "Hrs".
-  Olcum penceresi 10 / 20 literal yazildi (periyot argumanlari sabit olmali).
-  ========================================================================== }
-
 per:=2;
-
-{ --- 1) Fraktal olcek orani (Ehlers menzil-ikiye-katlama) ---------------- }
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);      { Rr = 2^D  ->  D = log2(Rr) }
-
-{ --- 2) Hurst usteli: Hrs = 2 - log2(Rr) --------------------------------- }
-{ Log'un tabani onemsizdir: Log(Rr)/Log(2) bir orandir, taban sadelesir. }
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 Hr0:=2-Log(Rr)/Log(2);
 Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
-
-{ --- 3) VAR ortalamasi ve reziduel oynaklik ------------------------------ }
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
-{ 1.2533 = ortalama mutlak sapmayi standart sapmaya ceviren sabit           }
-{ (normal dagilim icin sqrt(pi/2)). Ayarlanabilir parametre DEGIL.          }
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-
-{ --- 4) ADAPTIF OPT ----------------------------------------------------- }
-{ bant orani = z*sigmaR,  z = 1/(2*Hrs)  ->  opt = 200*z*sigmaR = 100*sigmaR/Hrs }
 op0:=100*SgR/Hrs;
-optA:=If(op0<0.05,0.05,If(op0>10,10,op0));   { patolojik veriye karsi kelepce }
-
-{ --- 5) OTT ratchet (klasik yapinin aynisi; opt artik sabit degil, seri) - }
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
-
-{ 1. cizgi: OTT-A   |   2. cizgi: destek (VAR ortalamasi) }
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-
-{ Cikti yazimi: cizgiler tek satirda, ; ile ayrilir, satir ; ile biter }
 Ott;C1;

@@ -61,6 +61,13 @@ Bu modüllerin yazım kuralları Indicator Builder'dan farklı. Bilinmeyenler:
 Builder'da (doğrulanmış ortamda) kurup kaydetmek, System Tester'ın o kayıtlı
 indikatörü çağırmasını sağlamak.
 
+### Kod yazım kuralları (kullanıcı tarafından bildirildi)
+
+- **Kod bloklarında `{ }` yorum yok.** Açıklama koda değil, dosyanın düz metin
+  başlığına yazılır.
+- **Çok satıra yayılan atama yok.** Bir atama tek satırda bitmeli (iç içe `If`
+  zincirleri dahil).
+
 ### Dil kısıtları
 
 0. **Bir değişkene yalnızca BİR KEZ atama yapılabilir.** (Kullanıcı tarafından hata
@@ -91,3 +98,26 @@ indikatörü çağırmasını sağlamak.
 - **Doğrulanmamış fonksiyon adı kullanma.** Şüpheliyse `Sum`/`Abs` ile yeniden yaz veya literal sabite çevir.
 - **Sabitler ya yapısal ya evrensel olacak.** "Backtest'te bu değer daha iyi çıktı" gerekçesiyle sayı konmaz; parametreler grafiğin ölçülen karakterinden türetilir.
 - Doğrulama = **duyarlılık düzlüğü**, en yüksek kâr değil. Test geçmezse tasarım reddedilir, sayı ayarlanmaz.
+
+### Parametre muhasebesi (OTT-A'dan çıkarılan ders)
+
+**"Parametresiz / optimizasyonsuz" iddiası, serbest sabitler tek tek sayılıp
+listelenmeden yapılamaz.** OTT-A'da bu iddia yapıldı ve yanlış çıktı: fraktal
+pencereler (10/20), SgR penceresi, üç kırpma aralığı, `per`, banka aralığı —
+yaklaşık 8 serbest sabit vardı.
+
+Asıl tehlike sabitlerin varlığı değil, **nereye taşındıkları**: OPT taramasıyla
+görülebilen bir parametreyi alıp formülün içine gömmek, duyarlılığı ölçülemez
+hale getirir. Bu iyileştirme değil, gizlemedir.
+
+Her tasarımda serbest sabitler açık bir tabloda listelenecek: **yapısal /
+matematiksel / türetilmiş / SERBEST** diye sınıflandırılacak.
+
+### Kabul kriterleri (sistem önerisi bunları geçmeden sunulmaz)
+
+| Kriter | Eşik |
+|---|---|
+| Brüt / işlem | ≥ 30.4 puan (komisyon binde 0.8/tur + kayma 2 p/tur maliyetini karşılamalı) |
+| Kâr yoğunlaşması | En iyi **5** işlem çıkarıldığında net hâlâ pozitif olmalı |
+| Yön simetrisi | Short tarafı ayrı ölçülecek; kalıcılık ölçen bir filtre yön seçemez |
+| Ayırt edilebilirlik | 20–70 işlemlik örneklemde sabit alternatiflerle fark gürültüdür; monoton olmayan sıralama "kenar yok" demektir |
