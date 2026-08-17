@@ -53,11 +53,11 @@
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
-Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 
 pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
 
@@ -65,10 +65,13 @@ C1:=Mov(C,2,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 
-Hrs;0.5;optA;pB;
+{ Ciplak sayi cikti olarak yazilamaz; 0.5 referansi seriye cevriliyor }
+Sfr:=Hrs*0+0.5;
+
+Hrs;Sfr;optA;pB;
 
 ------------------------------ BURAYA KADAR -----------------------------------
 
@@ -93,16 +96,16 @@ N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
 Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
 
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
@@ -130,11 +133,11 @@ Ott;C1;
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
-Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
 
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 
 pB:=If(Rr<2.171,2,If(Rr<2.287,3,If(Rr<2.432,5,If(Rr<2.593,8,If(Rr<2.774,13,21)))));
 
@@ -147,8 +150,8 @@ C1:=If(pB=2,Mov(C,2,VAR),
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
@@ -191,10 +194,10 @@ per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
-Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 Hm:=Sum(Hrs,20)/20;
 sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;
 
@@ -202,8 +205,8 @@ C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
@@ -217,10 +220,10 @@ per:=2;
 N1:=(HHV(H,10)-LLV(L,10))/10;
 N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
 N3:=(HHV(H,20)-LLV(L,20))/20;
-Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
-Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 Hm:=Sum(Hrs,20)/20;
 sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;
 
@@ -228,8 +231,8 @@ C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
 Mn:=Sum(Rz,20)/20;
 SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
 
 q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);

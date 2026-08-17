@@ -28,6 +28,14 @@ vv;tt;ref;
 
 Her çıktıyı ayrı satıra yazmak veya son `;`'i atmak doğru yazım değildir.
 
+**Çıktılar seri olmalıdır — çıplak sabit sayı yazılamaz.** Sabit bir referans çizgisi
+gerekiyorsa önce seriye çevir:
+
+```
+{ YANLIS }   Hrs;0.5;optA;
+{ DOGRU  }   Sfr:=Hrs*0+0.5;   Hrs;Sfr;optA;
+```
+
 ### Doğrulanmış fonksiyonlar ve davranışlar
 
 | Öğe | Durum | Not |
@@ -54,6 +62,22 @@ Builder'da (doğrulanmış ortamda) kurup kaydetmek, System Tester'ın o kayıtl
 indikatörü çağırmasını sağlamak.
 
 ### Dil kısıtları
+
+0. **Bir değişkene yalnızca BİR KEZ atama yapılabilir.** (Kullanıcı tarafından hata
+   mesajıyla doğrulandı.) "Önce hesapla, sonra sınırla" kalıbı **iki ayrı isim** ister:
+
+   ```
+   {  YANLIS - degisken tanimlama hatasi verir }
+   Hrs:=2-Log(Rr)/Log(2);
+   Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+
+   {  DOGRU }
+   Hr0:=2-Log(Rr)/Log(2);
+   Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+   ```
+
+   Bu depoda kullanılan adlandırma: ham değer `X0`, sınırlanmış/nihai değer `X`
+   (`Rr0`→`Rr`, `Hr0`→`Hrs`, `op0`→`optA`).
 
 1. **Döngü yok.** Argmax/iteratif yöntemler yazılamaz; kapalı-form pencere tahmincileri kullanılır.
 2. **Formül başına tek `PREV` zinciri.** Birden fazla bağımsız özyineleme isteyen tasarımlar (ör. online ağırlık güncellemesi) tek formüle sığmaz.

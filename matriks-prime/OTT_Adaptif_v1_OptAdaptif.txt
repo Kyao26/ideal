@@ -28,8 +28,8 @@ Rr:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);      { Rr = 2^D  ->  D = log2(Rr) }
 
 { --- 2) Hurst usteli: Hrs = 2 - log2(Rr) --------------------------------- }
 { Log'un tabani onemsizdir: Log(Rr)/Log(2) bir orandir, taban sadelesir. }
-Hrs:=2-Log(Rr)/Log(2);
-Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
 
 { --- 3) VAR ortalamasi ve reziduel oynaklik ------------------------------ }
 C1:=Mov(C,per,VAR);
@@ -41,8 +41,8 @@ SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
 
 { --- 4) ADAPTIF OPT ----------------------------------------------------- }
 { bant orani = z*sigmaR,  z = 1/(2*Hrs)  ->  opt = 200*z*sigmaR = 100*sigmaR/Hrs }
-optA:=100*SgR/Hrs;
-optA:=If(optA<0.05,0.05,If(optA>10,10,optA));   { patolojik veriye karsi kelepce }
+op0:=100*SgR/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));   { patolojik veriye karsi kelepce }
 
 { --- 5) OTT ratchet (klasik yapinin aynisi; opt artik sabit degil, seri) - }
 q1:=Ref(C1,-2)*(1+optA/200);

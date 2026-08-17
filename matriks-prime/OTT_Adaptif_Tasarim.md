@@ -244,6 +244,10 @@ Yani formüller artık sadece şu kümeye dayanıyor: `Mov(...,VAR)`, `Ref`, `HH
 
 Tasarımı doğrudan şekillendirdikleri için açıkça yazıyorum:
 
+0. **Bir değişkene yalnızca bir kez atama yapılabilir**, ve **çıktı satırına çıplak
+   sabit sayı yazılamaz** (ikisi de kullanıcının aldığı hata mesajlarıyla doğrulandı).
+   "Önce hesapla, sonra sınırla" kalıbı iki ayrı isim ister (`Hr0` → `Hrs`); sabit
+   referans çizgisi önce seriye çevrilir (`Sfr:=Hrs*0+0.5;`).
 1. **Döngü yok.** Argmax arayan (ör. otokorelasyon periodogramı ile baskın döngü bulan)
    yöntemler doğrudan yazılamaz. Bu yüzden karakter ölçümü `HHV/LLV/Sum/Abs` gibi
    kapalı-form, pencere tabanlı tahmincilerle yapıldı.
