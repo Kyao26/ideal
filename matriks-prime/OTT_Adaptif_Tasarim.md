@@ -200,13 +200,23 @@ IQ'ya taşımak isterseniz yeniden yazım gerekir.
 
 **Kullanılan fonksiyon kümesi bilinçli olarak dar tutuldu:**
 
-| Kullanılan | `C H L` · `Mov(...,VAR)` · `Ref` · `HHV` · `LLV` · `Sum` · `Abs` · `Log` · `Sqrt` · `If` · `Cum` · `Cross` · `PREV` |
+| Kullanılan | `C H L` · `Mov(...,VAR)` · `Ref` · `HHV` · `LLV` · `Sum` · `Abs` · `Log` · `If` · `Cum` · `Cross` · `PREV` |
 |---|---|
-| **Kullanılmadı** | `Stdev` · `Exp` · `Max` · `Min` — adları/varlıkları sürüme göre değişebildiği için `Sum`+`Abs` ile yeniden yazıldı |
+| **Kullanılmadı** | `Stdev` · `Exp` · `Sqr` · `Max` · `Min` — varlıkları/anlamları sürüme göre değişebildiği için `Sum`+`Abs` ile yeniden yazıldı ya da literal sabite çevrildi |
 
-**Kullanıcının Indicator Builder testiyle doğrulandı:** `Sqrt()` çalışıyor, `Log()`
-çalışıyor ve **doğal logaritma** (ln 100 = 4.6052). Doğal olması kodu etkilemiyor,
-çünkü `Log(Rr)/Log(2)` bir orandır ve taban sadeleşir.
+**Indicator Builder testiyle doğrulandı:** karekök fonksiyonunun adı `Sqrt` değil
+**`Sqr`**, ve `Log()` mevcut (ekranda 4.6052).
+
+İki belirsizlik kaldı ve **kod ikisinden de bağımsız kılındı**:
+
+- `Sqr()` karekök mü, kare mi? (`Sqr(16)=4` → karekök; `Sqr(2)=4` → kare; ekrandaki
+  tek başına 4 değeri ikisini de açıklıyor.) → Kodda `Sqr` hiç kullanılmıyor;
+  karekök(20) gereken tek yere `4.4721` literali yazıldı.
+- `Log` doğal mı, 10 tabanlı mı? → Kodda yalnızca `Log(Rr)/Log(2)` oranı içinde
+  geçiyor; taban sadeleşir, ikisi de aynı sonucu verir.
+
+Yani formüller artık sadece şu kümeye dayanıyor: `Mov(...,VAR)`, `Ref`, `HHV`, `LLV`,
+`Sum`, `Abs`, `Log`, `If`, `Cum`, `Cross`, `PREV`.
 
 Geriye doğrulanacak üç şey kalıyor — `00_SOZDIZIMI_TESTI.txt` tam olarak bunları
 ölçer: **(a)** `Mov(C,2,VAR)` (VIDYA tipinin adı), **(b)** `PREV`'in atandığı

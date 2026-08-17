@@ -4,9 +4,21 @@
   Amac sinyal uretmek degil, OTT-A'nin dayandigi 3 varsayimi kanitlamak.
   --------------------------------------------------------------------------
   DOGRULANMIS (ekran goruntusuyle):
-     Sqrt() var       -> 4
-     Log()  var, DOGAL logaritma -> ln(100) = 4.6052
-     (Log tabani zaten onemsiz: kodda Log(Rr)/Log(2) orani kullaniliyor)
+     Sqr()  var (Sqrt DEGIL, Sqr)  -> 4
+     Log()  var                    -> 4.6052
+
+  ANCAK IKI BELIRSIZLIK VAR - kod artik IKISINDEN DE BAGIMSIZ:
+     1) Sqr() karekok mu, kare mi?  Sqr(16)=4 ise karekok, Sqr(2)=4 ise kare.
+        -> Kodda Sqr HIC KULLANILMIYOR. Karekok(20) gereken tek yere
+           4.4721 literali yazildi. Hangisi olursa olsun sonuc degismez.
+     2) Log dogal mi, 10 tabanli mi?  4.6052 = ln(100) gibi duruyor ama
+        girdi degerini bilmiyorum.
+        -> Kodda Log SADECE oran icinde: Log(Rr)/Log(2). Taban sadelesir,
+           dogal da olsa 10 tabanli da olsa ayni sonucu verir.
+
+  Merak edersen ayirt edici test (tek satir, ayri panel):  Sqr(9)
+     3  cikarsa -> karekok
+     81 cikarsa -> kare
 
   BU TESTTE BAKILACAKLAR: A ve B bloklari kritik, C opsiyonel.
   ========================================================================== }

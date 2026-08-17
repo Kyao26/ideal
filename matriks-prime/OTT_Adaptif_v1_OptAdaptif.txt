@@ -5,7 +5,7 @@
   KULLANILAN FONKSIYONLAR (bilerek dar tutuldu):
       C H L   Mov(...,VAR)   Ref()   HHV()   LLV()   Sum()   Abs()
       Log()   If()   Cum()   PREV
-  Stdev / Exp / Sqrt / Max / Min KULLANILMADI - adlari surumden surume
+  Stdev / Exp / Sqr / Max / Min KULLANILMADI - adlari ve anlamlari surumden
   degisebildigi icin hepsi Sum+Abs ile yeniden yazildi.
 
   per sabit (2, klasik OTT degeri), opt HER BAR grafigin karakterinden

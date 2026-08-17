@@ -10,7 +10,7 @@
   0.5 keyfi bir esik degil, rastgele yuruyusun tam kendisidir: trend
   takibinin beklenen degeri ancak seri kaliciysa pozitiftir.
   sH ise tahmincinin BIR STANDART HATASIDIR (ortalama mutlak sapmadan
-  turetilir: MAD -> sigma -> /Sqrt(20)). Sinirda mod atmasini engeller;
+  turetilir: MAD -> sigma -> /karekok(20)). Sinirda mod atmasini engeller;
   ayarlanabilir bir sayi degildir.
 
   PREV HAKKINDA
@@ -34,7 +34,7 @@ Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
 Hrs:=2-Log(Rr)/Log(2);
 Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
 Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/Sqrt(20);
+sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;   { 4.4721 = karekok(20), literal yazildi }
 
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
@@ -61,7 +61,7 @@ Rr:=If(Rr<1,1,If(Rr>4,4,Rr));
 Hrs:=2-Log(Rr)/Log(2);
 Hrs:=If(Hrs<0.2,0.2,If(Hrs>0.9,0.9,Hrs));
 Hm:=Sum(Hrs,20)/20;
-sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/Sqrt(20);
+sH:=1.2533*Sum(Abs(Hrs-Hm),20)/20/4.4721;   { 4.4721 = karekok(20), literal yazildi }
 
 C1:=Mov(C,per,VAR);
 Rz:=(C-C1)/C;
