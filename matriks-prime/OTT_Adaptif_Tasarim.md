@@ -218,11 +218,16 @@ IQ'ya taşımak isterseniz yeniden yazım gerekir.
 Yani formüller artık sadece şu kümeye dayanıyor: `Mov(...,VAR)`, `Ref`, `HHV`, `LLV`,
 `Sum`, `Abs`, `Log`, `If`, `Cum`, `Cross`, `PREV`.
 
-Geriye doğrulanacak üç şey kalıyor — `00_SOZDIZIMI_TESTI.txt` tam olarak bunları
-ölçer: **(a)** `Mov(C,2,VAR)` (VIDYA tipinin adı), **(b)** `PREV`'in atandığı
-değişkenin geçmişine bağlanıp bağlanmadığı, **(c)** ratchet kalıbının bütün olarak
-çalışması. (b) beklendiği gibi çıkmazsa sistem koşulları kendi kendine yeterli olmaz;
-OTT-A'nın kayıtlı indikatör olarak çağrılması gerekir.
+**Ayrıca test edilerek doğrulandı** (`00_SOZDIZIMI_TESTI.txt`):
+
+- `Mov(C,2,VAR)` çalışıyor → VIDYA/değişken ortalama tipinin adı `VAR`.
+- **`PREV`, atandığı değişkenin geçmişine bağlanıyor.** (`tt:=If(Cum(1)=1,0,PREV+1);`
+  çıktısı `Cum(1)-1` ile birebir örtüştü.) Bunun sonucu: OTT ratchet'i çalışır ve
+  sistem/Explorer koşulları **kendi kendine yeterlidir** — kodu kayıtlı indikatöre
+  bölmeye gerek yok.
+
+**Çıktı yazımı:** çizgiler tek satırda, `;` ile ayrılır, satır `;` ile biter:
+`Ott;C1;` — tüm formüller bu kurala göre yazıldı.
 
 > **OTT zorunlu değil.** Ratchet motoru olarak OTT seçildi çünkü bu lehçede çalıştığı
 > kanıtlanmış tek `PREV` kalıbı o. Karakter ölçüm katmanı (D → H → σ_R → opt) motordan

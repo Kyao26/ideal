@@ -47,7 +47,7 @@ q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
 
-Cross(C1,Ott) AND Hrs>0.5+sH
+Cross(C1,Ott) AND Hrs>0.5+sH;
 
 
 { ================== SAT KOSULU ============================================ }
@@ -74,7 +74,7 @@ q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
 
-Cross(Ott,C1) OR Hrs<0.5-sH
+Cross(Ott,C1) OR Hrs<0.5-sH;
 
 
 { ================== EXPLORER / TARAMA ====================================

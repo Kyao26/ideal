@@ -24,6 +24,18 @@
   ========================================================================== }
 
 
+{ ***** SONUC: BLOK A GECTI (test edildi) *********************************
+    vv  = 15597.96  -> Mov(C,2,VAR) calisiyor, VIDYA tipinin adi VAR.
+    tt  = 6124      -> ref ile BIREBIR AYNI cikti (iki cizgi ust uste).
+    ref = 6124
+
+    Yani PREV, ATANDIGI DEGISKENIN gecmisine baglaniyor. Bunun sonuclari:
+      - OTT ratchet'i calisir
+      - Sistem / Explorer kosullari kendi kendine yeterlidir, kodu kayitli
+        indikatore bolmeye gerek YOK
+  ************************************************************************ }
+
+
 { ===== BLOK A - EN KRITIK: VAR (VIDYA) ortalamasi ve PREV baglanmasi =====
   1. cizgi (vv)  : Mov(C,2,VAR) -> fiyati yakindan takip eden bir egri
                    olmali. HATA verirse VAR tipinin adi farklidir
@@ -46,9 +58,7 @@ vv:=Mov(C,2,VAR);
 tt:=If(Cum(1)=1,0,PREV+1);
 ref:=Cum(1)-1;
 
-vv;
-tt;
-ref
+vv;tt;ref;
 
 
 { ===== BLOK B - RATCHET (OTT'nin kalbi) ==================================

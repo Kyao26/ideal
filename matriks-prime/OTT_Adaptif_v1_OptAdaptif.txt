@@ -49,5 +49,7 @@ q1:=Ref(C1,-2)*(1+optA/200);
 q2:=Ref(C1,-2)*(1-optA/200);
 
 { 1. cizgi: OTT-A   |   2. cizgi: destek (VAR ortalamasi) }
-If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
-C1
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+
+{ Cikti yazimi: cizgiler tek satirda, ; ile ayrilir, satir ; ile biter }
+Ott;C1;
