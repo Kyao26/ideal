@@ -1,0 +1,10 @@
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Kapi:=If(Hrs>0.5,1,0);
+Sfr:=Hrs*0+0.5;
+Hrs;Sfr;Kapi;

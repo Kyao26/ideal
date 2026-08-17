@@ -1,0 +1,212 @@
+===============================================================================
+ AYAKTA KALAN UC PARCA | MATRIKS PRIME | TEK DOSYA
+===============================================================================
+ OTT-A v1 parameterlemesi olcumle dustu. Fikrin kendisi degil - parameterleme.
+ Bu dosya, ayakta kalan uc parcayi BIRBIRINDEN BAGIMSIZ test edilebilir hale
+ getirir. Sira rastgele degil: en saglamdan en spekulatife.
+
+   BLOK A : HURST KAPISI (tek basina)          - olcumun en saglam parcasi
+   BLOK B : KAPI + KLASIK OTT (sabit opt)      - kapi motordan bagimsiz mi?
+   BLOK C : OTT-A v3 UFUK KALIBRELI            - hic test edilmemis olan
+
+ Tam protokol: TEST_PROTOKOLU.md
+
+ NEDEN BLOK C ONEMLI
+   Eski optA medyani 0.278 -> yari bant %0.139. 5 dakikalik grafikte bu
+   ortalama 22 DAKIKALIK tutus demek; o bir trend takip sistemi degil,
+   gurultu takibi. Genis bantla hic kosulmadi. Olen sey buydu.
+
+ EN ONEMLI TASARIM DEGISIKLIGI
+   Serbest sabit artik FORMULUN ICINDE GIZLI DEGIL, ILK SATIRDA VE OPT ILE
+   TARANABILIR:
+       BLOK B ->  opt:=0.60;
+       BLOK C ->  kN:=2.1;
+   Onceki surumun asil kusuru bu sabitleri gomup duyarliligi olculemez
+   kilmasiydi. Artik disarida.
+
+ kN NEDIR
+   R/S olcekleme yasasindaki ufuk carpani. N barlik sapma = 1 barlik sapma
+   * N^H, yani kN = karekok(N).
+       kN=1.0 -> 1 bar   (eski hali)      optA medyan ~0.28
+       kN=2.1 -> 4.4 bar (olculen tutus)  optA medyan ~0.58
+       kN=3.2 -> 10 bar                   optA medyan ~0.88
+       kN=4.6 -> 21 bar (=pB)             optA medyan ~1.27
+
+ !!! DONGUSELLIK UYARISI !!!
+   kN=2.1, sizin en iyi olctugunuz sabit bolgeye (0.40-0.60) denk geliyor.
+   BU KANIT DEGIL, UYARIDIR. "Backtest'te iyi cikan yere denk gelen ufku
+   secmek" gizli optimizasyondur - bu tasarimin ilk surumundeki hatanin
+   aynisi. Mesru savunma sadece su ikisi:
+     1. N OLCULUR, secilmez -> islem basina ortalama bar sayisi backtest
+        ciktisindan okunur, kN=karekok(N) oradan gelir.
+     2. SABIT NOKTA KARARLI OLMALI -> yeni kN ile tutus uzar; yeni tutusu
+        tekrar olcup kN'i guncelleyin, tekrar kosun. 2-3 turda sabitlenmeli.
+        Salinmaya devam ediyorsa geri besleme kararsizdir, tasarim kalir.
+   kN'i kar maksimize edecek sekilde sectiginizi fark ederseniz test
+   BASARISIZDIR - sonuc ne olursa olsun.
+===============================================================================
+
+
+===============================================================================
+ BLOK A - HURST KAPISI (tek basina, hicbir motora bagli degil)
+-------------------------------------------------------------------------------
+ Cizgiler: Hrs | Sfr(0.5) | Kapi(0/1)
+ Ayri panelde calistirin. Herhangi bir sistemin onune filtre olarak konabilir.
+------------------------------- KOPYALA ---------------------------------------
+
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+Kapi:=If(Hrs>0.5,1,0);
+Sfr:=Hrs*0+0.5;
+Hrs;Sfr;Kapi;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ BLOK B - KAPI + KLASIK OTT (sabit opt)   [TEST 1]
+-------------------------------------------------------------------------------
+ Motor kasitli olarak SABIT opt'lu klasik OTT. Adaptif bant tamamen devre
+ disi, boylece kapi YALNIZ BASINA olculuyor.
+
+ A/B KOSUSU:
+   A (referans) : son satirdan " AND Hrs>0.5" kismini SILIN
+   B (kapili)   : dosyadaki hali
+ Bunu opt = 0.10 / 0.40 / 0.60 / 1.40 icin AYRI AYRI yapin.
+
+ GECME OLCUTU: B, A'yi dort opt degerinin en az UCUNDE gecmeli. Tek bir
+ opt degerinde iyilesme tesaduftur.
+------------------------- BLOK B - AL - KOPYALA -------------------------------
+
+opt:=0.60;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+C1:=Mov(C,per,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(C1,Ott) AND Hrs>0.5;
+
+------------------------- BLOK B - SAT - KOPYALA ------------------------------
+
+opt:=0.60;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+C1:=Mov(C,per,VAR);
+q1:=Ref(C1,-2)*(1+opt/200);
+q2:=Ref(C1,-2)*(1-opt/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(Ott,C1) OR Hrs<0.5;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ BLOK C - OTT-A v3 UFUK KALIBRELI   [TEST 2 - hic test edilmemis]
+-------------------------------------------------------------------------------
+ Indikator surumu (grafige koyup gozle bakmak icin). kN'i degistirip bandin
+ nasil genisledigini once GORUN, sonra sisteme gecin.
+
+ GECME OLCUTU (sizin kabul kriterleriniz):
+   - Brut/islem >= 30.4 p
+   - En iyi 5 islem cikarilinca net hala pozitif
+   - kN taramasi DUZ PLATO vermeli; tek kN'de sivrilip komsularinda
+     cokuyorsa bu gurultudur, kenar degil
+--------------------- BLOK C - INDIKATOR - KOPYALA ----------------------------
+
+kN:=2.1;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+C1:=Mov(C,per,VAR);
+Rz:=(C-C1)/C;
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
+op0:=100*SgR*kN/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
+q1:=Ref(C1,-2)*(1+optA/200);
+q2:=Ref(C1,-2)*(1-optA/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Ott;C1;
+
+------------------------- BLOK C - AL - KOPYALA -------------------------------
+
+kN:=2.1;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+C1:=Mov(C,per,VAR);
+Rz:=(C-C1)/C;
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
+op0:=100*SgR*kN/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
+q1:=Ref(C1,-2)*(1+optA/200);
+q2:=Ref(C1,-2)*(1-optA/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(C1,Ott) AND Hrs>0.5;
+
+------------------------- BLOK C - SAT - KOPYALA ------------------------------
+
+kN:=2.1;
+per:=2;
+N1:=(HHV(H,10)-LLV(L,10))/10;
+N2:=(Ref(HHV(H,10),-10)-Ref(LLV(L,10),-10))/10;
+N3:=(HHV(H,20)-LLV(L,20))/20;
+Rr0:=If(N3>0 AND N1+N2>0,(N1+N2)/N3,2);
+Rr:=If(Rr0<1,1,If(Rr0>4,4,Rr0));
+Hr0:=2-Log(Rr)/Log(2);
+Hrs:=If(Hr0<0.2,0.2,If(Hr0>0.9,0.9,Hr0));
+C1:=Mov(C,per,VAR);
+Rz:=(C-C1)/C;
+Mn:=Sum(Rz,20)/20;
+SgR:=1.2533*Sum(Abs(Rz-Mn),20)/20;
+op0:=100*SgR*kN/Hrs;
+optA:=If(op0<0.05,0.05,If(op0>10,10,op0));
+q1:=Ref(C1,-2)*(1+optA/200);
+q2:=Ref(C1,-2)*(1-optA/200);
+Ott:=If(Cum(1)=1,C1,If(q1<=PREV,q1,If(q2>=PREV,q2,PREV)));
+Cross(Ott,C1) OR Hrs<0.5;
+
+------------------------------ BURAYA KADAR -----------------------------------
+
+
+===============================================================================
+ KARAR TABLOSU
+-------------------------------------------------------------------------------
+ TEST 1 gecer, TEST 2 kalir : Urun KAPIDIR. Sabit opt'lu klasik OTT + Hurst
+                              kapisi. Adaptif bant terk edilir.
+ TEST 1 gecer, TEST 2 gecer : OTT-A v3 yasar. Ama kN gorunur bir parametre
+                              olarak kalir; "parametresiz" DENMEZ.
+ TEST 1 kalir               : Tum hat kapanir. Kapi da OTT-A'ya ozgu
+                              tesadufmus demektir.
+
+ Hicbir sonucta sayi ayarlanmaz. Kalirsa tasarim reddedilir.
+===============================================================================
